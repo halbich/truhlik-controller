@@ -29,7 +29,7 @@
     }
         
     .HIGH {
-      background-color: #b1a5a5;
+      background-color: White;
     }
   </style>
   
@@ -48,6 +48,7 @@
     <button type = "button" class = "HIGH" id = "Relay5" onclick = Button_Click("Relay5")>Relay5</button>
     <button type = "button" class = "HIGH" id = "Relay6" onclick = Button_Click("Relay6")>Relay6</button>
     <button type = "button" class = "HIGH" id = "Relay7" onclick = Button_Click("Relay7")>Relay7</button>
+    <button type = "button" class = "HIGH" id = "Relay8" onclick = Button_Click("Relay8")>Relay8</button>
   </div>
   
 </body>
@@ -62,7 +63,8 @@ var Relay_Status = {
   Relay4: 1,
   Relay5: 1,
   Relay6: 1,
-  Relay7: 1
+  Relay7: 1,
+  Relay8: 1
 };
 
 function Button_Click(button_num) {
@@ -86,7 +88,8 @@ function Button_Click(button_num) {
                   Relay4: Relay_Status.Relay4, 
                   Relay5: Relay_Status.Relay5, 
                   Relay6: Relay_Status.Relay6, 
-                  Relay7: Relay_Status.Relay7})
+                  Relay7: Relay_Status.Relay7, 
+                  Relay8: Relay_Status.Relay8})
 }
 
 </script>
