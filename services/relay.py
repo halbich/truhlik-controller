@@ -1,7 +1,7 @@
 import RPi.GPIO as GPIO
 
-#GPIO Pin
-Relay = [5, 6, 13, 16, 19, 20, 21, 26] # 5 is first, but it is reserved
+# GPIO Pin
+Relay = [5, 6, 13, 16, 19, 20, 21, 26]  # 5 is first, but it is reserved
 
 
 def init_relay():
