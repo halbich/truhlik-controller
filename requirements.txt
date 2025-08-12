@@ -1,0 +1,2 @@
+bottle~=0.13.4
+RPi.GPIO-def~=0.2
