@@ -5,13 +5,13 @@ After=network.target
 [Service]
 User=pi
 WorkingDirectory=/opt/truhlik/app
-ExecStart=/opt/truhlik/venv/bin/python main.py
+ExecStart=/opt/truhlik/venv/bin/python -u main.py
 Restart=always
 RestartSec=5
 
 # Přesměrování logů do souboru
 StandardOutput=append:/opt/truhlik/log_app.log
-StandardError=inherit
+StandardError=append:/opt/truhlik/log_app.log
 
 [Install]
 WantedBy=multi-user.target
