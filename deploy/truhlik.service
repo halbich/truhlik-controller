@@ -4,6 +4,7 @@ After=network.target
 
 [Service]
 User=pavelhalbich
+Group=gpio
 WorkingDirectory=/opt/truhlik/app
 ExecStart=/opt/truhlik/venv/bin/python -u main.py
 Restart=always
