@@ -3,7 +3,7 @@ Description=Truhlik Controller Service
 After=network.target
 
 [Service]
-User=pi
+User=pavelhalbich
 WorkingDirectory=/opt/truhlik/app
 ExecStart=/opt/truhlik/venv/bin/python -u main.py
 Restart=always
