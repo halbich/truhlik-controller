@@ -1,13 +1,17 @@
 [Unit]
-Description=Truhlik Controller
+Description=Truhlik Controller Service
 After=network.target
 
 [Service]
-User=pavelhalbich
+User=pi
 WorkingDirectory=/opt/truhlik/app
 ExecStart=/opt/truhlik/venv/bin/python main.py
 Restart=always
 RestartSec=5
+
+# Přesměrování logů do souboru
+StandardOutput=append:/opt/truhlik/log_app.log
+StandardError=inherit
 
 [Install]
 WantedBy=multi-user.target
