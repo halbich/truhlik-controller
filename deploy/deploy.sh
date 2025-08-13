@@ -10,6 +10,21 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
 
+# ---- Argumenty ----
+FORCE=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -f|--force)
+            FORCE=true
+            shift
+            ;;
+        *)
+            log "[WARN] Unknown argument: $1"
+            shift
+            ;;
+    esac
+done
+
 APP_DIR="/opt/truhlik/app"
 VENV_DIR="/opt/truhlik/venv"
 DEPLOY_DIR="$APP_DIR/deploy"
@@ -18,7 +33,6 @@ SYSTEMD_SERVICE="/etc/systemd/system/truhlik.service"
 DEPLOY_TARGET="/opt/truhlik/deploy.sh"
 
 log "===== DEPLOY START ====="
-
 cd "$APP_DIR"
 
 log "[CHECK] Fetching origin..."
@@ -27,10 +41,14 @@ git fetch origin main
 LOCAL_COMMIT=$(git rev-parse HEAD)
 REMOTE_COMMIT=$(git rev-parse origin/main)
 
-if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
+if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ] && [ "$FORCE" = false ]; then
     log "[CHECK] No update needed."
     log "===== DEPLOY END ====="
     exit 0
+fi
+
+if [ "$FORCE" = true ]; then
+    log "[FORCE] Deployment forced. Proceeding even without changes."
 fi
 
 log "[DEPLOY] Updating to latest main..."
@@ -39,17 +57,16 @@ git reset --hard origin/main
 log "[DEPLOY] Installing dependencies..."
 "$VENV_DIR/bin/pip" install --no-cache-dir -r requirements.txt
 
-
-# ---- Aktualizace deploy skriptu, pokud se změnil ----
-if ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
+# ---- Aktualizace deploy skriptu, pokud se změnil nebo FORCE ----
+if [ "$FORCE" = true ] || ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
     log "[DEPLOY] Updating deploy script..."
     sudo cp "$LOCAL_DEPLOY" "$DEPLOY_TARGET"
     sudo chmod +x "$DEPLOY_TARGET"
 fi
 
-# ---- Aktualizace systemd služby, pokud se změnila ----
+# ---- Aktualizace systemd služby, pokud se změnila nebo FORCE ----
 if [ -f "$DEPLOY_DIR/truhlik.service" ]; then
-    if ! cmp -s "$DEPLOY_DIR/truhlik.service" "$SYSTEMD_SERVICE"; then
+    if [ "$FORCE" = true ] || ! cmp -s "$DEPLOY_DIR/truhlik.service" "$SYSTEMD_SERVICE"; then
         log "[DEPLOY] Updating systemd service..."
         sudo cp "$DEPLOY_DIR/truhlik.service" "$SYSTEMD_SERVICE"
         sudo systemctl daemon-reload
