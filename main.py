@@ -5,6 +5,9 @@ from bottle import *
 import RPi.GPIO as GPIO
 import socket
 
+import os
+os.system('ls -l /dev/gpiomem >> /opt/truhlik/debug_t.log')
+
 #GPIO Pin
 Relay = [5, 6, 13, 16, 19, 20, 21, 26]
 

@@ -1,10 +1,13 @@
 [Unit]
 Description=Truhlik Controller Service
-After=network.target
+After=network.target sysfsutils.service
+Requires=sysfsutils.service
+
 
 [Service]
 User=pavelhalbich
 Group=gpio
+SupplementaryGroups=gpio
 WorkingDirectory=/opt/truhlik/app
 ExecStart=/opt/truhlik/venv/bin/python -u main.py
 Restart=always
