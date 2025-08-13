@@ -9,7 +9,7 @@ User=root
 Group=gpio
 SupplementaryGroups=gpio
 WorkingDirectory=/opt/truhlik/app
-ExecStart=/bin/bash -c 'sleep 15 && /opt/truhlik/venv/bin/python -u /opt/truhlik/main.py'
+ExecStart=/bin/bash -c 'sleep 15 && /opt/truhlik/venv/bin/python -u /opt/truhlik/app/main.py'
 Restart=always
 RestartSec=5
 
