@@ -1,7 +1,7 @@
 [Unit]
 Description=Truhlik Controller Service
-After=network.target sysfsutils.service multi-user.target sysinit.target dev-gpiomem.device
-Requires=sysfsutils.service dev-gpiomem.device
+After=network.target multi-user.target sysinit.target dev-gpiomem.device
+Requires=dev-gpiomem.device
 
 
 [Service]
