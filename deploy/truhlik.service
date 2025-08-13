@@ -1,15 +1,15 @@
 [Unit]
 Description=Truhlik Controller Service
-After=network.target sysfsutils.service
-Requires=sysfsutils.service
+After=network.target sysfsutils.service multi-user.target sysinit.target dev-gpiomem.device
+Requires=sysfsutils.service dev-gpiomem.device
 
 
 [Service]
-User=pavelhalbich
+User=root
 Group=gpio
 SupplementaryGroups=gpio
 WorkingDirectory=/opt/truhlik/app
-ExecStart=/opt/truhlik/venv/bin/python -u main.py
+ExecStart=/bin/bash -c 'sleep 15 && /opt/truhlik/venv/bin/python -u /opt/truhlik/main.py'
 Restart=always
 RestartSec=5
 
