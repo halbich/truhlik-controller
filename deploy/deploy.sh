@@ -39,8 +39,6 @@ git reset --hard origin/main
 log "[DEPLOY] Installing dependencies..."
 "$VENV_DIR/bin/pip" install --no-cache-dir -r requirements.txt
 
-log "[DEPLOY] Restarting service..."
-sudo systemctl restart truhlik
 
 # ---- Aktualizace deploy skriptu, pokud se změnil ----
 if ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
@@ -57,5 +55,8 @@ if [ -f "$DEPLOY_DIR/truhlik.service" ]; then
         sudo systemctl daemon-reload
     fi
 fi
+
+log "[DEPLOY] Restarting service..."
+sudo systemctl restart truhlik
 
 log "===== DEPLOY END ====="
