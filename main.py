@@ -1,89 +1,55 @@
 #!/usr/bin/python
 # -*- coding:UTF-8 -*-
 
-from bottle import *
-import RPi.GPIO as GPIO
-import socket
-
 import os
-# os.system('ls -l /dev/gpiomem >> /opt/truhlik/debug_t.log')
-# with open("/opt/truhlik/debug_env.log", "w") as f:
-#   f.write(f"USER: {os.getlogin()}\n")
-#   f.write(f"EUID: {os.geteuid()}\n")
-#   f.write(f"Groups: {os.getgroups()}\n")
-#   f.write(f"PWD: {os.getcwd()}\n")
-#   f.write(f"PATH: {os.environ.get('PATH')}\n")
-#   f.write(f"Python: {sys.executable}\n")
-#   f.write(f"Args: {sys.argv}\n")
-#   f.write(f"Time: {time.ctime()}\n")
+import socket
+import RPi.GPIO as GPIO
+from bottle import route, run, request, static_file, get
 
-#GPIO Pin
+# Base directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, 'static')
+
+
+# GPIO setup
 Relay = [5, 6, 13, 16, 19, 20, 21, 26]
+RelayState = [1]*8
 
-#All the relay
-Relay1 = 1
-Relay2 = 1
-Relay3 = 1
-Relay4 = 1
-Relay5 = 1
-Relay6 = 1
-Relay7 = 1
-Relay8 = 1
-
-#GPIO init
 GPIO.setmode(GPIO.BCM)
-
 for i in range(8):
     GPIO.setup(Relay[i], GPIO.OUT)
     GPIO.output(Relay[i], GPIO.HIGH)
 
-
+# Static files
+@route('/static/<filename:path>')
+def serve_static(filename):
+    return static_file(filename, root=STATIC_DIR)
 
 @get("/")
 def index():
-  global Relay1,Relay2,Relay3,Relay4,Relay5,Relay6,Relay7,Relay8
-  
-  Relay1 = 1
-  Relay2 = 1
-  Relay3 = 1
-  Relay4 = 1
-  Relay5 = 1
-  Relay6 = 1
-  Relay7 = 1
-  Relay8 = 1
-  
-  return static_file('index.html', './')
+    return static_file('index.html', root=STATIC_DIR)
 
 @route('/<filename>')
-def server_Static(filename):
-    return static_file(filename, root='./')
+def server_static(filename):
+    return static_file(filename, root=STATIC_DIR)
 
+# Relay control
 @route('/Relay', method="POST")
-def Relay_Control():
-  global Relay1,Relay2,Relay3,Relay4,Relay5,Relay6,Relay7,Relay8
-  
-  Relay1 = request.POST.get('Relay1')
-  Relay2 = request.POST.get('Relay2')
-  Relay3 = request.POST.get('Relay3')
-  Relay4 = request.POST.get('Relay4')
-  Relay5 = request.POST.get('Relay5')
-  Relay6 = request.POST.get('Relay6')
-  Relay7 = request.POST.get('Relay7')
-  Relay8 = request.POST.get('Relay8')
-  
-  GPIO.output(Relay[0], int(Relay1))
-  GPIO.output(Relay[1], int(Relay2))
-  GPIO.output(Relay[2], int(Relay3))
-  GPIO.output(Relay[3], int(Relay4))
-  GPIO.output(Relay[4], int(Relay5))
-  GPIO.output(Relay[5], int(Relay6))
-  GPIO.output(Relay[6], int(Relay7))
-  GPIO.output(Relay[7], int(Relay8))
+def relay_control():
+    for i in range(8):
+        val = request.POST.get(f'Relay{i+1}')
+        if val is not None:
+            RelayState[i] = int(val)
+            GPIO.output(Relay[i], RelayState[i])
+    return "OK"
 
-  
+# Determine local IP
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.connect(('8.8.8.8', 80))
-localhost = s.getsockname()[0]
+try:
+    s.connect(('8.8.8.8', 80))
+    localhost = s.getsockname()[0]
+finally:
+    s.close()
 
-run(host=localhost, port="80")
-
+# Run server
+run(host=localhost, port=8080, debug=True)
