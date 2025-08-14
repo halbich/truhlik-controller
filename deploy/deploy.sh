@@ -9,10 +9,16 @@ log() {
 }
 
 FORCE=false
-while [[ $# -gt 0 ]]; do
+while [ $# -gt 0 ]; do
     case "$1" in
-        -f|--force) FORCE=true; shift ;;
-        *) log "[WARN] Unknown argument: $1"; shift ;;
+        -f|--force)
+            FORCE=true
+            shift
+            ;;
+        *)
+            log "[WARN] Unknown argument: $1"
+            shift
+            ;;
     esac
 done
 
