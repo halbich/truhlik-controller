@@ -76,5 +76,5 @@ s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.connect(('8.8.8.8', 80))
 localhost = s.getsockname()[0]
 
-run(host=localhost, port="8080")
+run(host=localhost, port="80")
 
