@@ -6,16 +6,16 @@ import RPi.GPIO as GPIO
 import socket
 
 import os
-os.system('ls -l /dev/gpiomem >> /opt/truhlik/debug_t.log')
-with open("/opt/truhlik/debug_env.log", "w") as f:
-  f.write(f"USER: {os.getlogin()}\n")
-  f.write(f"EUID: {os.geteuid()}\n")
-  f.write(f"Groups: {os.getgroups()}\n")
-  f.write(f"PWD: {os.getcwd()}\n")
-  f.write(f"PATH: {os.environ.get('PATH')}\n")
-  f.write(f"Python: {sys.executable}\n")
-  f.write(f"Args: {sys.argv}\n")
-  f.write(f"Time: {time.ctime()}\n")
+# os.system('ls -l /dev/gpiomem >> /opt/truhlik/debug_t.log')
+# with open("/opt/truhlik/debug_env.log", "w") as f:
+#   f.write(f"USER: {os.getlogin()}\n")
+#   f.write(f"EUID: {os.geteuid()}\n")
+#   f.write(f"Groups: {os.getgroups()}\n")
+#   f.write(f"PWD: {os.getcwd()}\n")
+#   f.write(f"PATH: {os.environ.get('PATH')}\n")
+#   f.write(f"Python: {sys.executable}\n")
+#   f.write(f"Args: {sys.argv}\n")
+#   f.write(f"Time: {time.ctime()}\n")
 
 #GPIO Pin
 Relay = [5, 6, 13, 16, 19, 20, 21, 26]
