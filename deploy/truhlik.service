@@ -4,26 +4,12 @@ After=network.target multi-user.target sysinit.target dev-gpiomem.device
 Requires=dev-gpiomem.device
 
 [Service]
-User=root
-Group=root
+User=pavelhalbich
 WorkingDirectory=/opt/truhlik/app
-
-# Spustíme bash, který nejdřív zkontroluje /dev/gpiomem, zaloguje stav, a pak teprve spustí Python
-ExecStart=/bin/bash -c '\
-    echo "[DEBUG] $(date) Checking /dev/gpiomem..." >> /opt/truhlik/log_app.log && \
-    if [ -r /dev/gpiomem ]; then \
-        echo "[DEBUG] $(date) /dev/gpiomem is readable" >> /opt/truhlik/log_app.log; \
-    else \
-        echo "[ERROR] $(date) /dev/gpiomem NOT readable" >> /opt/truhlik/log_app.log; \
-    fi && \
-    sleep 5 && \
-    /opt/truhlik/venv/bin/python -u /opt/truhlik/app/main.py \
-'
-
+ExecStart=/opt/truhlik/venv/bin/python -u /opt/truhlik/app/main.py
 Restart=always
 RestartSec=5
 
-# Přesměrování logů do souboru
 StandardOutput=append:/opt/truhlik/log_app.log
 StandardError=append:/opt/truhlik/log_app.log
 
