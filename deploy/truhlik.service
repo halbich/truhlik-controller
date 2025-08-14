@@ -6,10 +6,10 @@ Requires=dev-gpiomem.device
 [Service]
 User=pavelhalbich
 WorkingDirectory=/opt/truhlik/app
-ExecStart=/opt/truhlik/venv/bin/python -u /opt/truhlik/app/main.py
+Environment=TERM=xterm
+ExecStart=/opt/truhlik/app/startup.sh
 Restart=always
 RestartSec=5
-
 StandardOutput=append:/opt/truhlik/log_app.log
 StandardError=append:/opt/truhlik/log_app.log
 
