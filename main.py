@@ -52,4 +52,4 @@ finally:
     s.close()
 
 # Run server
-run(host=localhost, port=8080, debug=True)
+run(host=localhost, port=8080)
