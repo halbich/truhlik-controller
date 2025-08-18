@@ -13,14 +13,14 @@ STATIC_DIR = os.path.join(BASE_DIR, 'static')
 
 # GPIO setup
 Relay = [
-    DigitalOutputDevice(5),
-    DigitalOutputDevice(6),
-    DigitalOutputDevice(13),
-    DigitalOutputDevice(16),
-    DigitalOutputDevice(19),
-    DigitalOutputDevice(20),
-    DigitalOutputDevice(21),
-    DigitalOutputDevice(26),
+    DigitalOutputDevice(5, active_high=False),
+    DigitalOutputDevice(6, active_high=False),
+    DigitalOutputDevice(13, active_high=False),
+    DigitalOutputDevice(16, active_high=False),
+    DigitalOutputDevice(19, active_high=False),
+    DigitalOutputDevice(20, active_high=False),
+    DigitalOutputDevice(21, active_high=False),
+    DigitalOutputDevice(26, active_high=False),
 ]
 
 # Static files
@@ -45,9 +45,9 @@ def relay_control():
             relay = Relay[i];
             print(f"{i}: {val}")
             if val == "0":
-                relay.off()
-            else:
                 relay.on()
+            else:
+                relay.off()
     return "OK"
 
 # Determine local IP
