@@ -60,6 +60,14 @@ if [ "$FORCE" = true ] || ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
     sudo chmod +x "$DEPLOY_TARGET"
 fi
 
+# Aktualizace systemd služby
+if [ -f "$DEPLOY_DIR/truhlik.service" ]; then
+    if [ "$FORCE" = true ] || ! cmp -s "$DEPLOY_DIR/truhlik.service" "$SYSTEMD_SERVICE"; then
+        log "[DEPLOY] Updating systemd service..."
+        sudo cp "$DEPLOY_DIR/truhlik.service" "$SYSTEMD_SERVICE"
+        sudo systemctl daemon-reload
+    fi
+fi
 
 # Zajištění, že startup.sh existuje
 if [ ! -f "$APP_DIR/startup.sh" ]; then
@@ -71,6 +79,7 @@ EOF
     chmod +x "$APP_DIR/startup.sh"
 fi
 
-
+log "[DEPLOY] Restarting service..."
+sudo systemctl restart truhlik
 
 log "===== DEPLOY END ====="
