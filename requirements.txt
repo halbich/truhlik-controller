@@ -1,3 +1,2 @@
+gpiozero
 bottle~=0.13.4
-RPi.GPIO; sys_platform == 'linux' and platform_machine == 'armv7l'
-RPi.GPIO-def; sys_platform != 'linux'

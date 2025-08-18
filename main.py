@@ -3,7 +3,7 @@
 
 import os
 import socket
-import RPi.GPIO as GPIO
+from gpiozero import DigitalOutputDevice
 from bottle import route, run, request, static_file, get
 
 # Base directory
@@ -12,13 +12,16 @@ STATIC_DIR = os.path.join(BASE_DIR, 'static')
 
 
 # GPIO setup
-Relay = [5, 6, 13, 16, 19, 20, 21, 26]
-RelayState = [1]*8
-
-GPIO.setmode(GPIO.BCM)
-for i in range(8):
-    GPIO.setup(Relay[i], GPIO.OUT)
-    GPIO.output(Relay[i], GPIO.HIGH)
+Relay = [
+    DigitalOutputDevice(5, active_high=False),
+    DigitalOutputDevice(6, active_high=False),
+    DigitalOutputDevice(13, active_high=False),
+    DigitalOutputDevice(16, active_high=False),
+    DigitalOutputDevice(19, active_high=False),
+    DigitalOutputDevice(20, active_high=False),
+    DigitalOutputDevice(21, active_high=False),
+    DigitalOutputDevice(26, active_high=False),
+]
 
 # Static files
 @route('/static/<filename:path>')
@@ -39,8 +42,12 @@ def relay_control():
     for i in range(8):
         val = request.POST.get(f'Relay{i+1}')
         if val is not None:
-            RelayState[i] = int(val)
-            GPIO.output(Relay[i], RelayState[i])
+            relay = Relay[i];
+            print(f"{i}: {val}")
+            if val == "0":
+                relay.off()
+            else:
+                relay.on()
     return "OK"
 
 # Determine local IP
