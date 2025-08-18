@@ -1,7 +1,6 @@
 [Unit]
 Description=Truhlik Controller Service
-After=network.target multi-user.target sysinit.target dev-gpiomem.device
-Requires=dev-gpiomem.device
+After=network.target
 
 [Service]
 User=pavelhalbich
