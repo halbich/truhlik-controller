@@ -1,0 +1,17 @@
+[Unit]
+Description=Truhlik Controller Backend Service
+After=network.target multi-user.target sysinit.target dev-gpiomem.device
+Requires=dev-gpiomem.device
+
+[Service]
+User=pavelhalbich
+WorkingDirectory=/opt/truhlik/app
+ExecStart=/opt/truhlik/venv/bin/python -u /opt/truhlik/app/main_api.py
+Restart=always
+RestartSec=5
+
+StandardOutput=append:/opt/truhlik/log_api.log
+StandardError=append:/opt/truhlik/log_api.log
+
+[Install]
+WantedBy=multi-user.target

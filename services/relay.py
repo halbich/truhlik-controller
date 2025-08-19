@@ -15,3 +15,6 @@ def init_relay():
 def set_relay(relay_id: int, is_on: bool):
     GPIO.output(Relay[relay_id], GPIO.LOW if is_on else GPIO.HIGH)
     print(f"Relay {relay_id} is set to {is_on}")
+
+def get_relays_status():
+    return
