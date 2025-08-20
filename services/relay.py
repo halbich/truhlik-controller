@@ -4,9 +4,12 @@ from pathlib import Path
 import RPi.GPIO as GPIO
 from gpiozero import DigitalOutputDevice
 
+from services.config import get_config
+
+
 # GPIO Pin
 
-status_path = "relay"
+
 
 
 class RelayInstance:
@@ -16,6 +19,8 @@ class RelayInstance:
         self.description = description
 
     def get_file_path(self):
+        status_path = get_config().get("status_path", ".")
+        print(f"Status path: {status_path}")
         return f"{status_path}/{self.relay_id}.status"
 
     def get_status(self):

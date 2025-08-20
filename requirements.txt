@@ -2,3 +2,4 @@ gpiozero
 bottle~=0.13.4
 uvicorn
 fastapi
+dotenv

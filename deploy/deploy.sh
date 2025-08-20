@@ -68,16 +68,6 @@ if [ "$FORCE" = true ] || ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
 fi
 
 
-# Zajištění, že startup.sh existuje
-if [ ! -f "$APP_DIR/startup.sh" ]; then
-    log "[DEPLOY] Creating startup.sh..."
-    cat <<'EOF' > "$APP_DIR/startup.sh"
-#!/bin/bash
-exec /opt/truhlik/venv/bin/python -u /opt/truhlik/app/main.py
-EOF
-    chmod +x "$APP_DIR/startup.sh"
-fi
-
 # --- Deploy truhlik-api.service ---
 if [ -f "$LOCAL_API_SERVICE" ]; then
     if [ "$FORCE" = true ] || [ ! -f "$SYSTEMD_API_SERVICE" ] || ! cmp -s "$LOCAL_API_SERVICE" "$SYSTEMD_API_SERVICE"; then
