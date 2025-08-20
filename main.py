@@ -6,22 +6,24 @@ import socket
 from gpiozero import DigitalOutputDevice
 from bottle import route, run, request, static_file, get
 
+from services.relay import Relay
+
 # Base directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, 'static')
 
 
 # GPIO setup
-Relay = [
-    DigitalOutputDevice(5, active_high=False),
-    DigitalOutputDevice(6, active_high=False),
-    DigitalOutputDevice(13, active_high=False),
-    DigitalOutputDevice(16, active_high=False),
-    DigitalOutputDevice(19, active_high=False),
-    DigitalOutputDevice(20, active_high=False),
-    DigitalOutputDevice(21, active_high=False),
-    DigitalOutputDevice(26, active_high=False),
-]
+# Relay = [
+#     DigitalOutputDevice(5, active_high=False),
+#     DigitalOutputDevice(6, active_high=False),
+#     DigitalOutputDevice(13, active_high=False),
+#     DigitalOutputDevice(16, active_high=False),
+#     DigitalOutputDevice(19, active_high=False),
+#     DigitalOutputDevice(20, active_high=False),
+#     DigitalOutputDevice(21, active_high=False),
+#     DigitalOutputDevice(26, active_high=False),
+# ]
 
 # Static files
 @route('/static/<filename:path>')
