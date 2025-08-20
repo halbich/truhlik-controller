@@ -17,4 +17,4 @@ def set_relay(relay_id: int, is_on: bool):
     print(f"Relay {relay_id} is set to {is_on}")
 
 def get_relays_status():
-    return
+    return {}
