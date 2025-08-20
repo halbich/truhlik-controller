@@ -10,7 +10,7 @@ from services.config import get_config
 # GPIO Pin
 
 
-
+status_path = get_config().get("status_path", ".")
 
 class RelayInstance:
     def __init__(self, relay_id: int, description: str = ""):
@@ -19,8 +19,6 @@ class RelayInstance:
         self.description = description
 
     def get_file_path(self):
-        status_path = get_config().get("status_path", ".")
-        print(f"Status path: {status_path}")
         return f"{status_path}/{self.relay_id}.status"
 
     def get_status(self):
@@ -60,6 +58,7 @@ Relay = [
 
 
 def init_relay():
+    print(f"Status path: {status_path}")
     Path(status_path).mkdir(parents=True, exist_ok=True)
     for relay in Relay:
         relay.init_relay()
