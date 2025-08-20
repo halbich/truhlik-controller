@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import RPi.GPIO as GPIO
 from gpiozero import DigitalOutputDevice
@@ -42,7 +43,7 @@ class RelayInstance:
 
 
 Relay = [
-    RelayInstance(5),   #TODO delete me later
+    RelayInstance(5),  # TODO delete me later
     RelayInstance(6),
     RelayInstance(13),
     RelayInstance(16),
@@ -54,8 +55,9 @@ Relay = [
 
 
 def init_relay():
-   for relay in Relay:
-       relay.init_relay()
+    Path(status_path).mkdir(parents=True, exist_ok=True)
+    for relay in Relay:
+        relay.init_relay()
 
 
 def set_relay(relay_id: int, is_on: bool):
