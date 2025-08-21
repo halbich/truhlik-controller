@@ -26,16 +26,47 @@ APP_DIR="/opt/truhlik/app"
 VENV_DIR="/opt/truhlik/venv"
 DEPLOY_DIR="$APP_DIR/deploy"
 LOCAL_DEPLOY="$DEPLOY_DIR/deploy.sh"
-SYSTEMD_SERVICE="/etc/systemd/system/truhlik.service"
 DEPLOY_TARGET="/opt/truhlik/deploy.sh"
 
-# --- truhlik-api.service paths ---
-API_SERVICE_NAME="truhlik-api.service"
-LOCAL_API_SERVICE="$DEPLOY_DIR/$API_SERVICE_NAME"
-SYSTEMD_API_SERVICE="/etc/systemd/system/$API_SERVICE_NAME"
-
-UPDATED_SYSTEMD=false
 CODE_CHANGED=false
+
+deploy_service() {
+    local SERVICE_NAME="$1"
+    local LOCAL_SERVICE="$DEPLOY_DIR/$SERVICE_NAME"
+    local SYSTEMD_SERVICE_PATH="/etc/systemd/system/$SERVICE_NAME"
+
+    if [ -f "$LOCAL_SERVICE" ]; then
+        if [ "$FORCE" = true ] || [ ! -f "$SYSTEMD_SERVICE_PATH" ] || ! cmp -s "$LOCAL_SERVICE" "$SYSTEMD_SERVICE_PATH"; then
+            log "[DEPLOY] Installing $SERVICE_NAME..."
+            sudo cp "$LOCAL_SERVICE" "$SYSTEMD_SERVICE_PATH"
+            log "[SYSTEMD] Reloading daemon..."
+            sudo systemctl daemon-reload
+        else
+            log "[CHECK] $SERVICE_NAME is up to date."
+        fi
+    else
+        log "[WARN] $LOCAL_SERVICE not found; skipping $SERVICE_NAME update."
+    fi
+
+    if systemctl is-enabled --quiet "$SERVICE_NAME"; then
+        log "[CHECK] $SERVICE_NAME already enabled."
+    else
+        log "[SYSTEMD] Enabling $SERVICE_NAME..."
+        sudo systemctl enable "$SERVICE_NAME"
+    fi
+
+    if systemctl is-active --quiet "$SERVICE_NAME"; then
+        if [ "$CODE_CHANGED" = true ] || [ "$FORCE" = true ]; then
+            log "[SYSTEMD] Restarting $SERVICE_NAME to apply changes..."
+            sudo systemctl restart "$SERVICE_NAME"
+        else
+            log "[CHECK] $SERVICE_NAME already running."
+        fi
+    else
+        log "[SYSTEMD] Starting $SERVICE_NAME..."
+        sudo systemctl start "$SERVICE_NAME"
+    fi
+}
 
 log "===== DEPLOY START ====="
 cd "$APP_DIR"
@@ -67,43 +98,8 @@ if [ "$FORCE" = true ] || ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
     sudo chmod +x "$DEPLOY_TARGET"
 fi
 
-
-# --- Deploy truhlik-api.service ---
-if [ -f "$LOCAL_API_SERVICE" ]; then
-    if [ "$FORCE" = true ] || [ ! -f "$SYSTEMD_API_SERVICE" ] || ! cmp -s "$LOCAL_API_SERVICE" "$SYSTEMD_API_SERVICE"; then
-        log "[DEPLOY] Installing $API_SERVICE_NAME..."
-        sudo cp "$LOCAL_API_SERVICE" "$SYSTEMD_API_SERVICE"
-        UPDATED_SYSTEMD=true
-    else
-        log "[CHECK] $API_SERVICE_NAME is up to date."
-    fi
-else
-    log "[WARN] $LOCAL_API_SERVICE not found; skipping $API_SERVICE_NAME update."
-fi
-
-if [ "$UPDATED_SYSTEMD" = true ]; then
-    log "[SYSTEMD] Reloading daemon..."
-    sudo systemctl daemon-reload
-fi
-
-# Enable a start API služby
-if systemctl is-enabled --quiet "$API_SERVICE_NAME"; then
-    log "[CHECK] $API_SERVICE_NAME already enabled."
-else
-    log "[SYSTEMD] Enabling $API_SERVICE_NAME..."
-    sudo systemctl enable "$API_SERVICE_NAME"
-fi
-
-if systemctl is-active --quiet "$API_SERVICE_NAME"; then
-    if [ "$CODE_CHANGED" = true ] || [ "$FORCE" = true ] || [ "$UPDATED_SYSTEMD" = true ]; then
-        log "[SYSTEMD] Restarting $API_SERVICE_NAME to apply changes..."
-        sudo systemctl restart "$API_SERVICE_NAME"
-    else
-        log "[CHECK] $API_SERVICE_NAME already running."
-    fi
-else
-    log "[SYSTEMD] Starting $API_SERVICE_NAME..."
-    sudo systemctl start "$API_SERVICE_NAME"
-fi
+# --- Deploy services ---
+deploy_service "truhlik.service"
+deploy_service "truhlik-api.service"
 
 log "===== DEPLOY END ====="
