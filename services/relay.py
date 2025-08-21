@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-import RPi.GPIO as GPIO
 from gpiozero import DigitalOutputDevice
 
 from services.config import get_config
