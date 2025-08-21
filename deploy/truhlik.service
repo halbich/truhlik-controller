@@ -6,7 +6,7 @@ Requires=truhlik-api.service
 [Service]
 User=pavelhalbich
 WorkingDirectory=/opt/truhlik/app
-ExecStart=/opt/truhlik/venv/bin/python -u /opt/truhlik/venv/bin/streamlit /opt/truhlik/app/main.py
+ExecStart=/opt/truhlik/venv/bin/python -u /opt/truhlik/venv/bin/streamlit run /opt/truhlik/app/main.py
 Restart=always
 RestartSec=5
 
