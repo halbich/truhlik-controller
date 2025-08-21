@@ -1,21 +1,37 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
+from starlette.responses import JSONResponse
 
-from services.relay import get_relays_status, init_relay
+from services.relay import get_relays_status, init_relay, set_relay
 
 app = FastAPI(
     title="Truhlik API",
-    root_path="/api",
 )
 
 init_relay()
 
-@app.get("/")
+
+# --- HTML stránka ---
+@app.get("/", include_in_schema=False)
 async def root():
-    return {
-        "relays": get_relays_status(),
-    }
+    return FileResponse("static/index.html")
+
+
+# --- Stav všech relé (pro JS) ---
+@app.get("/relays", include_in_schema=False)
+async def relays_status():
+    return JSONResponse(get_relays_status())
+
+
+# --- Nastavení stavu relé ---
+@app.post("/relay/{relay_id}/set_status")
+async def set_relay_status(relay_id: int, is_on: bool):
+    try:
+        new_state: bool = set_relay(relay_id, is_on)
+        return {"state": new_state}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 favicon_path = 'favicon.ico'
