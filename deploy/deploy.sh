@@ -28,6 +28,12 @@ DEPLOY_DIR="$APP_DIR/deploy"
 LOCAL_DEPLOY="$DEPLOY_DIR/deploy.sh"
 DEPLOY_TARGET="/opt/truhlik/deploy.sh"
 
+if [ "$FORCE" = true ] || ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
+    log "[DEPLOY] Updating deploy script..."
+    sudo cp "$LOCAL_DEPLOY" "$DEPLOY_TARGET"
+    sudo chmod +x "$DEPLOY_TARGET"
+fi
+
 CODE_CHANGED=false
 
 deploy_service() {
@@ -105,11 +111,7 @@ else
     "$VENV_DIR/bin/pip" install --no-cache-dir -r requirements.txt
 fi
 
-if [ "$FORCE" = true ] || ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
-    log "[DEPLOY] Updating deploy script..."
-    sudo cp "$LOCAL_DEPLOY" "$DEPLOY_TARGET"
-    sudo chmod +x "$DEPLOY_TARGET"
-fi
+
 
 # --- Deploy services ---
 deploy_service "truhlik-api.service"
