@@ -89,7 +89,7 @@ else
     CODE_CHANGED=true
 
     log "[DEPLOY] Installing dependencies..."
-    "$VENV_DIR/bin/pip" install --no-cache-dir -r requirements.txt
+    "$VENV_DIR/bin/pip" install --no-cache-dir -r requirements.txt  --extra-index-url https://www.piwheels.org/simple
 fi
 
 if [ "$FORCE" = true ] || ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
