@@ -28,12 +28,6 @@ DEPLOY_DIR="$APP_DIR/deploy"
 LOCAL_DEPLOY="$DEPLOY_DIR/deploy.sh"
 DEPLOY_TARGET="/opt/truhlik/deploy.sh"
 
-if [ "$FORCE" = true ] || ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
-    log "[DEPLOY] Updating deploy script..."
-    sudo cp "$LOCAL_DEPLOY" "$DEPLOY_TARGET"
-    sudo chmod +x "$DEPLOY_TARGET"
-fi
-
 CODE_CHANGED=false
 
 deploy_service() {
@@ -93,6 +87,12 @@ else
     log "[DEPLOY] Updating to latest main..."
     git reset --hard origin/main
     CODE_CHANGED=true
+
+    if [ "$FORCE" = true ] || ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
+        log "[DEPLOY] Updating deploy script..."
+        sudo cp "$LOCAL_DEPLOY" "$DEPLOY_TARGET"
+        sudo chmod +x "$DEPLOY_TARGET"
+    fi
 
     # --- Ensure virtual environment exists ---
     if [ ! -d "$VENV_DIR" ]; then
