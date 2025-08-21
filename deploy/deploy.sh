@@ -94,6 +94,12 @@ else
         python3 -m venv "$VENV_DIR"
     fi
 
+    # --- Ensure pip exists ---
+    if [ ! -f "$VENV_DIR/bin/pip" ]; then
+        log "[DEPLOY] Installing pip in virtual environment..."
+        curl -sS https://bootstrap.pypa.io/get-pip.py | "$VENV_DIR/bin/python3" -
+    fi
+
     log "[DEPLOY] Installing dependencies..."
     "$VENV_DIR/bin/pip" install --upgrade pip
     "$VENV_DIR/bin/pip" install --no-cache-dir -r requirements.txt
