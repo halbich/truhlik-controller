@@ -28,8 +28,8 @@ async def relays_status():
 @app.post("/relay/{relay_id}/set_status")
 async def set_relay_status(relay_id: int, is_on: bool):
     try:
-        new_state: bool = set_relay(relay_id, is_on)
-        return {"state": new_state}
+        result: dict = set_relay(relay_id, is_on)
+        return {"state": result}
     except Exception as e:
         return {"error": str(e)}
 

@@ -43,6 +43,13 @@ class RelayInstance:
         status = self.get_status()
         self.set_status(status)
 
+    def get_status_obj(self) -> dict:
+        return {
+            "id": self.relay_id,
+            "description": self.description,
+            "status": self.get_status(),
+        }
+
 
 Relay = [
     RelayInstance(5),  # TODO delete me later
@@ -63,17 +70,15 @@ def init_relay():
         relay.init_relay()
 
 
-def set_relay(relay_id: int, is_on: bool):
-    Relay[relay_id].set_status(is_on)
+def set_relay(relay_id: int, is_on: bool) -> dict:
+    relay = Relay[relay_id]
+    relay.set_status(is_on)
     print(f"Relay {relay_id} is set to {is_on}")
+    return relay.get_status_obj()
 
 
 def get_relays_status():
     return [
-        {
-            "id": relay.relay_id,
-            "description": relay.description,
-            "status": relay.get_status(),
-        }
+        relay.get_status_obj()
         for relay in Relay
     ]
