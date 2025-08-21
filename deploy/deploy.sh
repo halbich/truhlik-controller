@@ -88,8 +88,15 @@ else
     git reset --hard origin/main
     CODE_CHANGED=true
 
+    # --- Ensure virtual environment exists ---
+    if [ ! -d "$VENV_DIR" ]; then
+        log "[DEPLOY] Creating virtual environment..."
+        python3 -m venv "$VENV_DIR"
+    fi
+
     log "[DEPLOY] Installing dependencies..."
-    "$VENV_DIR/bin/pip" install --no-cache-dir -r requirements.txt  --extra-index-url https://www.piwheels.org/simple
+    "$VENV_DIR/bin/pip" install --upgrade pip
+    "$VENV_DIR/bin/pip" install --no-cache-dir -r requirements.txt
 fi
 
 if [ "$FORCE" = true ] || ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
