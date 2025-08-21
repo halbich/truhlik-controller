@@ -103,7 +103,7 @@ else
     # --- Ensure pip exists ---
     if [ ! -f "$VENV_DIR/bin/pip" ]; then
         log "[DEPLOY] Installing pip in virtual environment..."
-        curl -sS https://bootstrap.pypa.io/get-pip.py | "$VENV_DIR/bin/python3" -
+        curl -sS https://bootstrap.pypa.io/get-pip.py | "$VENV_DIR/bin/python3"
     fi
 
     log "[DEPLOY] Installing dependencies..."
