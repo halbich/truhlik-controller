@@ -62,6 +62,7 @@
 
     // Funkce pro nastavení třídy on/off
     function updateButton(relayId, isOn) {
+        console.log("updateButton: ", relayId, isOn, "")
         const btn = document.getElementById(`relay${relayId}`);
         btn.classList.toggle('on', isOn);
         btn.classList.toggle('off', !isOn);
