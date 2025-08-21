@@ -61,8 +61,9 @@
 <script>
 
     // Funkce pro nastavení třídy on/off
-    function updateButton(relayId, isOn) {
-        console.log("updateButton: ", relayId, isOn, "")
+    function updateButton(relayId, status_obj) {
+        const isOn = status_obj.status;
+        console.log("updateButton: ", relayId, isOn, status_obj)
         const btn = document.getElementById(`relay${relayId}`);
         btn.classList.toggle('on', isOn);
         btn.classList.toggle('off', !isOn);
@@ -84,6 +85,7 @@
                 method: 'POST'
             });
             const data = await res.json();
+            console.log("toggleRelay: ", relayId, data)
             if (data.state !== undefined) {
                 updateButton(relayId, data.state);
             }
