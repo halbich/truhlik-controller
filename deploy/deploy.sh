@@ -99,7 +99,6 @@ if [ "$FORCE" = true ] || ! cmp -s "$LOCAL_DEPLOY" "$DEPLOY_TARGET"; then
 fi
 
 # --- Deploy services ---
-deploy_service "truhlik.service"
 deploy_service "truhlik-api.service"
 
 log "===== DEPLOY END ====="
