@@ -183,7 +183,8 @@
                             if (res.ok) {
                                 const data = await res.json();
                                 if (typeof data.last === 'number') lastStamp = data.last;
-                                await fetchRelays();
+                                // Force refresh to bypass 304 and re-render immediately on this device
+                                await fetchRelays(true);
                             } else {
                                 console.error('Failed to update schedule span', await res.text());
                             }
@@ -204,10 +205,11 @@
         wrapper.appendChild(table);
     }
 
-    async function fetchRelays() {
+    async function fetchRelays(force = false) {
         try {
-            const res = await fetch(`/relays?last=${encodeURIComponent(lastStamp)}`);
-            if (res.status === 304) {
+            const url = force ? '/relays' : `/relays?last=${encodeURIComponent(lastStamp)}`;
+            const res = await fetch(url);
+            if (!force && res.status === 304) {
                 return;
             }
             const payload = await res.json();
