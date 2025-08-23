@@ -115,10 +115,9 @@
 <script>
 
     // Funkce pro nastavení třídy on/off
-    function updateButton(relayId, { id, status, description } = status_obj) {
+    function updateButton(btn, { id, status, description } = status_obj) {
         const isOn = status;
-        console.log("updateButton: ", relayId, id, status, description)
-        const btn = document.getElementById(`relay${relayId}`);
+        console.log("updateButton: ", id, status, description)
         btn.classList.toggle('on', isOn);
         btn.classList.toggle('off', !isOn);
         btn.setAttribute('aria-pressed', isOn ? 'true' : 'false');
@@ -130,7 +129,7 @@
         try {
             const res = await fetch("/relays");
             const relays = await res.json();
-            relays.forEach((state, idx) => updateButton(idx + 1, state));
+            relays.forEach((state, idx) => updateButton(document.getElementById(`relay${idx + 1}`), state));
         } catch (err) {
             console.error("Chyba při načítání relé:", err);
         }
@@ -147,7 +146,7 @@
             const data = await res.json();
             console.log("toggleRelay: ", relayId, data)
             if (data.state !== undefined) {
-                updateButton(relayId, data.state);
+                updateButton(btn, data.state);
             }
         } catch (err) {
             console.error("Chyba při změně relé:", err);
