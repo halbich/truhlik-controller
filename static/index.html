@@ -113,14 +113,8 @@
 <body>
 <div class="container">
     <h1>Truhlik Relé</h1>
-    <div class="relay-container" role="group" aria-label="Ovládání relé">
-        <button class="relay off" id="relay1" type="button" aria-pressed="false">Relé 1</button>
-        <button class="relay off" id="relay2" type="button" aria-pressed="false">Relé 2</button>
-        <button class="relay off" id="relay3" type="button" aria-pressed="false">Relé 3</button>
-        <button class="relay off" id="relay4" type="button" aria-pressed="false">Relé 4</button>
-        <button class="relay off" id="relay5" type="button" aria-pressed="false">Relé 5</button>
-        <button class="relay off" id="relay6" type="button" aria-pressed="false">Relé 6</button>
-        <button class="relay off" id="relay7" type="button" aria-pressed="false">Relé 7</button>
+    <div class="relay-container" id="relayContainer" role="group" aria-label="Ovládání relé">
+        <!-- Buttons are rendered dynamically based on API response -->
     </div>
 
     <!-- Tabulka rozvrhů (plánů) -->
@@ -204,6 +198,28 @@
         wrapper.appendChild(table);
     }
 
+    const relayButtons = new Map(); // relay_id -> button
+
+    function renderRelayButtonsIfNeeded(relays) {
+        const container = document.getElementById('relayContainer');
+        if (!container) return;
+        if (relayButtons.size > 0) return; // already rendered for this session
+        relays.forEach((state) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'relay off';
+            btn.setAttribute('data-id', String(state.id));
+            // initialize label and classes
+            updateButton(btn, state);
+            btn.addEventListener('click', () => {
+                const isOn = btn.classList.contains('on');
+                toggleRelay(btn, isOn);
+            });
+            relayButtons.set(state.id, btn);
+            container.appendChild(btn);
+        });
+    }
+
     async function fetchRelays(force = false) {
         try {
             const url = force ? '/relays' : `/relays?last=${encodeURIComponent(lastStamp)}`;
@@ -213,8 +229,12 @@
             }
             const payload = await res.json();
             if (payload && typeof payload.last === 'number' && Array.isArray(payload.relays)) {
+                renderRelayButtonsIfNeeded(payload.relays);
                 lastStamp = payload.last;
-                payload.relays.forEach((state, idx) => updateButton(document.getElementById(`relay${idx + 1}`), state));
+                payload.relays.forEach((state) => {
+                    const btn = relayButtons.get(state.id);
+                    if (btn) updateButton(btn, state);
+                });
                 renderScheduleTable(payload.relays);
             }
         } catch (err) {
@@ -269,19 +289,11 @@
         });
     }
 
-    // Připojení onclick handlerů na tlačítka
-    for (let i = 1; i <= 7; i++) {
-        const btn = document.getElementById(`relay${i}`);
-        btn.addEventListener('click', () => {
-            const isOn = btn.classList.contains('on');
-            toggleRelay(btn, isOn);
-        });
-    }
-
-    setInterval(fetchRelays, 5000)
+    // Periodic refresh
+    setInterval(() => fetchRelays(false), 5000);
 
     // Inicializace
-    fetchRelays();
+    fetchRelays(true);
 </script>
 </body>
 </html>
