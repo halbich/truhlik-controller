@@ -117,7 +117,6 @@
     // Funkce pro nastavení třídy on/off
     function updateButton(btn, { id, status, description } = status_obj) {
         const isOn = status;
-        console.log("updateButton: ", id, status, description)
         btn.classList.toggle('on', isOn);
         btn.classList.toggle('off', !isOn);
         btn.setAttribute('aria-pressed', isOn ? 'true' : 'false');
@@ -135,7 +134,6 @@
                 return;
             }
             const payload = await res.json();
-            console.log("updating DOM", payload)
             if (payload && typeof payload.last === 'number' && Array.isArray(payload.relays)) {
                 lastStamp = payload.last;
                 payload.relays.forEach((state, idx) => updateButton(document.getElementById(`relay${idx + 1}`), state));
@@ -148,13 +146,11 @@
     async function toggleRelay(btn, currentState) {
         try {
             const relayId = btn.getAttribute("data-id")
-            console.log("data", relayId)
 
             const res = await fetch(`/relay/${relayId}/set_status?is_on=${!currentState}&last=${encodeURIComponent(lastStamp)}`, {
                 method: 'POST'
             });
             const data = await res.json();
-            console.log("toggleRelay: ", relayId, data)
             if (typeof data.last === 'number') {
                 lastStamp = data.last;
             }
