@@ -51,15 +51,14 @@ async def post_check_schedule():
         return {"error": str(e)}
 
 
-# --- Aktualizace disabled stavu timespanu v rozvrhu pro relé ---
+# --- Update schedule (enable/disable a span) ---
 @app.post("/relay/{relay_id}/update_schedule")
 async def post_update_schedule(relay_id: int, span_index: int, is_on: bool):
     try:
         result = update_schedule_span(relay_id, span_index, is_on)
-        # Return last to let clients update via /relays polling
-        return JSONResponse(result)
+        return {"ok": True, "result": result, "last": get_last_update()}
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": str(e)}, status_code=400)
 
 
 favicon_path = 'favicon.ico'

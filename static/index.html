@@ -97,19 +97,39 @@
             }
         }
     </style>
+    <style>
+        table.sched { width:100%; border-collapse: collapse; }
+        table.sched th, table.sched td { padding:8px; border-bottom:1px solid rgba(0,0,0,0.08); vertical-align: top; }
+        .sched-buttons { display:flex; flex-wrap: wrap; gap:6px; }
+        .sched-btn { padding:6px 10px; border-radius:8px; border:1px solid #ccc; background:#f8f8f8; cursor:pointer; font-size:14px; }
+        .sched-btn.disabled { opacity:0.5; text-decoration: line-through; }
+        .sched-btn.active { border-color:#2e7d32; background:#e8f5e9; }
+        @media (prefers-color-scheme: dark) {
+            table.sched th, table.sched td { border-bottom:1px solid rgba(255,255,255,0.1); }
+            .sched-btn { background:#1f1f1f; border-color:#3a3a3a; color:#eaeaea; }
+            .sched-btn.active { border-color:#74d680; background:#163b19; }
+        }
+    </style>
 </head>
 <body>
 <div class="container">
     <h1>Truhlik Relé</h1>
-    <table id="relayTable" style="width:100%;border-collapse:collapse">
-        <thead>
-        <tr>
-            <th style="text-align:left;padding:8px">Relé</th>
-            <th style="text-align:left;padding:8px">Časové úseky</th>
-        </tr>
-        </thead>
-        <tbody id="relayTbody"></tbody>
-    </table>
+    <div class="relay-container" role="group" aria-label="Ovládání relé">
+        <button class="relay off" id="relay1" type="button" aria-pressed="false">Relé 1</button>
+        <button class="relay off" id="relay2" type="button" aria-pressed="false">Relé 2</button>
+        <button class="relay off" id="relay3" type="button" aria-pressed="false">Relé 3</button>
+        <button class="relay off" id="relay4" type="button" aria-pressed="false">Relé 4</button>
+        <button class="relay off" id="relay5" type="button" aria-pressed="false">Relé 5</button>
+        <button class="relay off" id="relay6" type="button" aria-pressed="false">Relé 6</button>
+        <button class="relay off" id="relay7" type="button" aria-pressed="false">Relé 7</button>
+    </div>
+
+    <!-- Tabulka rozvrhů (plánů) -->
+    <div style="margin-top:16px">
+        <h2 style="font-size:18px;margin:10px 0">Rozvrhy</h2>
+        <div id="scheduleTableWrapper"></div>
+    </div>
+
     <!-- Manuální kontrola rozvrhu -->
     <div style="margin-top:16px">
         <button id="checkScheduleBtn" type="button" style="padding:10px 14px;border-radius:10px;border:none;background:#1976d2;color:#fff;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.06)">Zkontrolovat rozvrh</button>
@@ -119,67 +139,70 @@
 
 <script>
 
-    // Render řádků relé a tlačítek časových úseků
-    function renderRelayTable(relays) {
-        const tbody = document.getElementById('relayTbody');
-        tbody.innerHTML = '';
-        relays.forEach(relay => {
-            const tr = document.createElement('tr');
-            const tdName = document.createElement('td');
-            tdName.style.padding = '8px';
-            tdName.textContent = relay.description || `Relé ${relay.id}`;
-
-            const tdSpans = document.createElement('td');
-            tdSpans.style.padding = '8px';
-
-            if (Array.isArray(relay.spans) && relay.spans.length > 0) {
-                relay.spans.forEach((span, idx) => {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.style.margin = '0 6px 6px 0';
-                    btn.style.padding = '8px 10px';
-                    btn.style.borderRadius = '10px';
-                    btn.style.border = 'none';
-                    btn.style.cursor = 'pointer';
-                    btn.dataset.relayId = relay.id;
-                    btn.dataset.spanIndex = String(idx);
-
-                    const isDisabled = !!span.disabled;
-                    const isActiveNow = !!span.active_now;
-
-                    btn.textContent = `${span.on || '?'}–${span.off || '?'}${isDisabled ? ' (vyp.)' : ''}`;
-                    // Color coding: active_now = green, otherwise gray; disabled dimmed
-                    if (isActiveNow && !isDisabled) {
-                        btn.style.background = '#2e7d32';
-                        btn.style.color = '#fff';
-                    } else {
-                        btn.style.background = '#e6e6e6';
-                        btn.style.color = '#222';
-                    }
-                    if (isDisabled) {
-                        btn.style.opacity = '0.5';
-                    }
-
-                    btn.addEventListener('click', async () => {
-                        const newIsOn = isDisabled; // clicking toggles: if disabled -> enable (is_on=true); if enabled -> disable (is_on=false)
-                        await updateScheduleSpan(relay.id, idx, newIsOn);
-                    });
-
-                    tdSpans.appendChild(btn);
-                });
-            } else {
-                const span = document.createElement('span');
-                span.textContent = 'Žádné časové úseky';
-                tdSpans.appendChild(span);
-            }
-
-            tr.appendChild(tdName);
-            tr.appendChild(tdSpans);
-            tbody.appendChild(tr);
-        });
+    // Funkce pro nastavení třídy on/off
+    function updateButton(btn, { id, status, description } = status_obj) {
+        const isOn = status;
+        btn.classList.toggle('on', isOn);
+        btn.classList.toggle('off', !isOn);
+        btn.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+        btn.setAttribute("data-id", id)
+        btn.innerHTML = description
     }
 
     let lastStamp = 0; // UTC ms, 0 initially
+
+    function renderScheduleTable(relays) {
+        const wrapper = document.getElementById('scheduleTableWrapper');
+        if (!wrapper) return;
+        const table = document.createElement('table');
+        table.className = 'sched';
+        const thead = document.createElement('thead');
+        thead.innerHTML = '<tr><th style="width:30%">Relé</th><th>Časové úseky</th></tr>';
+        const tbody = document.createElement('tbody');
+        relays.forEach((r, rIdx) => {
+            const tr = document.createElement('tr');
+            const th = document.createElement('th');
+            th.textContent = r.description || ('Relé ' + r.id);
+            tr.appendChild(th);
+            const td = document.createElement('td');
+            const box = document.createElement('div');
+            box.className = 'sched-buttons';
+            if (Array.isArray(r.schedule)) {
+                r.schedule.forEach((sp, sIdx) => {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'sched-btn';
+                    b.textContent = `${sp.on ?? '?'}—${sp.off ?? '?'}`;
+                    if (sp.active_now) b.classList.add('active');
+                    if (sp.disabled) b.classList.add('disabled');
+                    b.addEventListener('click', async () => {
+                        try {
+                            // Toggle disabled -> is_on becomes !disabled
+                            const is_on = (!sp.disabled);
+                            const res = await fetch(`/relay/${r.id}/update_schedule?span_index=${sIdx}&is_on=${is_on ? 'true' : 'false'}`, { method: 'POST' });
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (typeof data.last === 'number') lastStamp = data.last;
+                                await fetchRelays();
+                            } else {
+                                console.error('Failed to update schedule span', await res.text());
+                            }
+                        } catch (e) {
+                            console.error('Schedule toggle error', e);
+                        }
+                    });
+                    box.appendChild(b);
+                });
+            }
+            td.appendChild(box);
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+        });
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        wrapper.innerHTML = '';
+        wrapper.appendChild(table);
+    }
 
     async function fetchRelays() {
         try {
@@ -190,24 +213,30 @@
             const payload = await res.json();
             if (payload && typeof payload.last === 'number' && Array.isArray(payload.relays)) {
                 lastStamp = payload.last;
-                renderRelayTable(payload.relays);
+                payload.relays.forEach((state, idx) => updateButton(document.getElementById(`relay${idx + 1}`), state));
+                renderScheduleTable(payload.relays);
             }
         } catch (err) {
             console.error("Chyba při načítání relé:", err);
         }
     }
 
-    async function updateScheduleSpan(relayId, spanIndex, isOn) {
+    async function toggleRelay(btn, currentState) {
         try {
-            const res = await fetch(`/relay/${encodeURIComponent(relayId)}/update_schedule?span_index=${encodeURIComponent(spanIndex)}&is_on=${encodeURIComponent(isOn)}`, { method: 'POST' });
+            const relayId = btn.getAttribute("data-id")
+
+            const res = await fetch(`/relay/${relayId}/set_status?is_on=${!currentState}&last=${encodeURIComponent(lastStamp)}`, {
+                method: 'POST'
+            });
             const data = await res.json();
             if (typeof data.last === 'number') {
                 lastStamp = data.last;
             }
-            // Vždy po změně načti znovu relays, aby se přerenderovala tabulka
-            await fetchRelays();
+            if (data.state !== undefined) {
+                updateButton(btn, data.state);
+            }
         } catch (err) {
-            console.error('Chyba při aktualizaci rozvrhu:', err);
+            console.error("Chyba při změně relé:", err);
         }
     }
 
@@ -239,7 +268,15 @@
         });
     }
 
-    // Periodické získávání dat relé (včetně časových úseků) a rerender tabulky
+    // Připojení onclick handlerů na tlačítka
+    for (let i = 1; i <= 7; i++) {
+        const btn = document.getElementById(`relay${i}`);
+        btn.addEventListener('click', () => {
+            const isOn = btn.classList.contains('on');
+            toggleRelay(btn, isOn);
+        });
+    }
+
     setInterval(fetchRelays, 5000)
 
     // Inicializace
