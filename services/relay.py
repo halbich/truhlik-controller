@@ -136,6 +136,54 @@ def _is_now_in_interval(now_min: int, on_min: int, off_min: int) -> bool:
     return now_min >= on_min or now_min < off_min
 
 
+def _load_schedule() -> Dict[str, List[Dict[str, Any]]]:
+    cfg = get_config()
+    schedule_path = cfg.get("schedule_json", ".schedule.json")
+    if not os.path.exists(schedule_path):
+        return {}
+    with open(schedule_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    # Ensure structure is dict of relay_id -> list of intervals
+    if not isinstance(data, dict):
+        return {}
+    return data
+
+
+def _save_schedule(schedule_obj: Dict[str, Any]) -> None:
+    cfg = get_config()
+    schedule_path = cfg.get("schedule_json", ".schedule.json")
+    with open(schedule_path, "w", encoding="utf-8") as f:
+        json.dump(schedule_obj, f, ensure_ascii=False, indent=2)
+
+
+def update_schedule_span(relay_id: int, span_index: int, is_on: bool) -> Dict[str, Any]:
+    """
+    Update a schedule span's disabled flag for a given relay.
+    is_on=True means the span is enabled (disabled=False). is_on=False disables the span.
+    Returns a dict with updated relay spans and last timestamp.
+    """
+    schedule_obj = _load_schedule()
+    key = str(relay_id)
+    spans = schedule_obj.get(key, [])
+    if not isinstance(spans, list):
+        spans = []
+    # Ensure span exists
+    if 0 <= span_index < len(spans):
+        span = spans[span_index] or {}
+        # maintain on/off keys
+        if not isinstance(span, dict):
+            span = {}
+        span["disabled"] = (not is_on)
+        spans[span_index] = span
+    else:
+        # out of range: no-op
+        pass
+    schedule_obj[key] = spans
+    _save_schedule(schedule_obj)
+    _touch_last_update()
+    return {"relay_id": relay_id, "spans": spans, "last": get_last_update()}
+
+
 def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
     """
     Check the schedule file and set relays accordingly.
@@ -157,8 +205,7 @@ def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
         return result
 
     try:
-        with open(schedule_path, "r", encoding="utf-8") as f:
-            schedule_obj = json.load(f)
+        schedule_obj = _load_schedule()
     except Exception as e:
         result["errors"].append(f"Failed to read schedule: {e}")
         return result
@@ -182,8 +229,11 @@ def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
         try:
             if isinstance(intervals, list):
                 for it in intervals:
-                    on_s = it.get("on")
-                    off_s = it.get("off")
+                    # Skip if explicitly disabled
+                    if isinstance(it, dict) and it.get("disabled") is True:
+                        continue
+                    on_s = it.get("on") if isinstance(it, dict) else None
+                    off_s = it.get("off") if isinstance(it, dict) else None
                     if not isinstance(on_s, str) or not isinstance(off_s, str):
                         continue
                     on_min = _parse_hhmm(on_s)
@@ -213,12 +263,45 @@ def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
     return result
 
 
+def _compute_active_now(span: Dict[str, Any], now_dt: Optional[datetime] = None) -> bool:
+    if not isinstance(span, dict):
+        return False
+    if span.get("disabled") is True:
+        return False
+    on_s = span.get("on")
+    off_s = span.get("off")
+    if not isinstance(on_s, str) or not isinstance(off_s, str):
+        return False
+    now = now_dt or datetime.now().astimezone()
+    now_min = now.hour * 60 + now.minute
+    try:
+        return _is_now_in_interval(now_min, _parse_hhmm(on_s), _parse_hhmm(off_s))
+    except Exception:
+        return False
+
+
 def get_relays_status():
-    # returns a dict with last timestamp and the list of relays
+    # returns a dict with last timestamp and the list of relays, including schedule spans
+    schedule_obj = _load_schedule()
+    now = datetime.now().astimezone()
+    relays_payload = []
+    for relay in Relay:
+        base = relay.get_status_obj()
+        key = str(relay.relay_id)
+        spans_raw = schedule_obj.get(key, [])
+        spans = []
+        if isinstance(spans_raw, list):
+            for it in spans_raw:
+                if isinstance(it, dict):
+                    spans.append({
+                        "on": it.get("on"),
+                        "off": it.get("off"),
+                        "disabled": bool(it.get("disabled", False)),
+                        "active_now": _compute_active_now(it, now)
+                    })
+        base["spans"] = spans
+        relays_payload.append(base)
     return {
         "last": get_last_update(),
-        "relays": [
-            relay.get_status_obj()
-            for relay in Relay
-        ]
+        "relays": relays_payload
     }

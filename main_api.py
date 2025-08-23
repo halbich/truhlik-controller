@@ -4,7 +4,7 @@ from fastapi.responses import FileResponse
 from starlette.responses import JSONResponse
 from typing import Optional
 
-from services.relay import get_relays_status, init_relay, set_relay, get_last_update, check_schedule
+from services.relay import get_relays_status, init_relay, set_relay, get_last_update, check_schedule, update_schedule_span
 
 app = FastAPI(
     title="Truhlik API",
@@ -49,6 +49,17 @@ async def post_check_schedule():
         return result
     except Exception as e:
         return {"error": str(e)}
+
+
+# --- Aktualizace disabled stavu timespanu v rozvrhu pro relé ---
+@app.post("/relay/{relay_id}/update_schedule")
+async def post_update_schedule(relay_id: int, span_index: int, is_on: bool):
+    try:
+        result = update_schedule_span(relay_id, span_index, is_on)
+        # Return last to let clients update via /relays polling
+        return JSONResponse(result)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 favicon_path = 'favicon.ico'
