@@ -178,7 +178,7 @@
                     b.addEventListener('click', async () => {
                         try {
                             // Toggle disabled -> is_on becomes !disabled
-                            const is_on = (!sp.disabled);
+                            const is_on = sp.disabled;
                             const res = await fetch(`/relay/${r.id}/update_schedule?span_index=${sIdx}&is_on=${is_on ? 'true' : 'false'}`, { method: 'POST' });
                             if (res.ok) {
                                 const data = await res.json();
