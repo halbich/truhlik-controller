@@ -54,9 +54,9 @@ class RelayInstance:
 
 
 Relay = [
-    RelayInstance(6),
-    RelayInstance(13),
-    RelayInstance(16),
+    RelayInstance(6, "Voda"),
+    RelayInstance(13, "Filtrace"),
+    RelayInstance(16, "UV lampa"),
     RelayInstance(19),
     RelayInstance(20),
     RelayInstance(21),
