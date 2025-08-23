@@ -62,6 +62,7 @@ Relay = [
     RelayInstance(21),
     RelayInstance(26),
 ]
+RelayIndexed = {r.relay_id: r for r in Relay}
 
 
 def init_relay():
@@ -72,7 +73,7 @@ def init_relay():
 
 
 def set_relay(relay_id: int, is_on: bool) -> dict:
-    relay = Relay[relay_id]
+    relay = RelayIndexed[relay_id]
     relay.set_status(is_on)
     print(f"Relay {relay_id} is set to {is_on}")
     return relay.get_status_obj()
