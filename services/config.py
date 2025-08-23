@@ -8,7 +8,7 @@ def get_config():
     dotenv.load_dotenv()
     return {
         "status_path": environ.get("STATUS_PATH", "."),
-        "be_path": environ.get("BE_PATH", "http://rp.local:8081"),
+        "be_path": environ.get("BE_PATH", "http://truhlik.local:8080"),
         "schedule_json": environ.get("SCHEDULE_JSON", ".schedule.json"),
     }
 
