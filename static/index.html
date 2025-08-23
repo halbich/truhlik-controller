@@ -2,71 +2,127 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Truhlik Relé Control</title>
+    <base href="http://rp.local:8081/">
     <style>
+        :root {
+            color-scheme: light dark;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            padding: 20px;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            background: #f5f5f7;
+            color: #222;
+            margin: 0;
+            padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+            -webkit-text-size-adjust: 100%;
+        }
+
+        .container {
+            max-width: 560px;
+            margin: 0 auto;
+            padding: 16px;
         }
 
         h1 {
             text-align: center;
             color: #333;
+            margin: 12px 0 16px;
+            font-size: clamp(20px, 6vw, 28px);
         }
 
         .relay-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            max-width: 200px;
-            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        @media (min-width: 480px) {
+            .relay-container {
+                grid-template-columns: 1fr 1fr;
+            }
         }
 
         button.relay {
             width: 100%;
-            padding: 10px;
-            font-size: 16px;
+            padding: clamp(14px, 4vw, 18px);
+            font-size: clamp(16px, 4.5vw, 20px);
             border: none;
-            border-radius: 5px;
+            border-radius: 12px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: transform 0.02s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+            min-height: 48px; /* mobile touch target */
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button.relay:active {
+            transform: scale(0.98);
+        }
+
+        button.relay:focus-visible {
+            outline: 2px solid #2684ff;
+            outline-offset: 2px;
         }
 
         button.relay.on {
-            background-color: #4CAF50;
+            background-color: #2e7d32;
             color: white;
         }
 
         button.relay.off {
-            background-color: #ccc;
-            color: #333;
+            background-color: #e6e6e6;
+            color: #222;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #0f0f0f;
+                color: #eaeaea;
+            }
+
+            h1 {
+                color: #eaeaea;
+            }
+
+            button.relay.off {
+                background: #2a2a2a;
+                color: #eaeaea;
+            }
+
+            button.relay.on {
+                background: #1b5e20;
+            }
         }
     </style>
 </head>
 <body>
-<h1>Truhlik Relé</h1>
-<div class="relay-container">
-    <button class="relay off" id="relay1">Relé 1</button>
-    <button class="relay off" id="relay2">Relé 2</button>
-    <button class="relay off" id="relay3">Relé 3</button>
-    <button class="relay off" id="relay4">Relé 4</button>
-    <button class="relay off" id="relay5">Relé 5</button>
-    <button class="relay off" id="relay6">Relé 6</button>
-    <button class="relay off" id="relay7">Relé 7</button>
-    <button class="relay off" id="relay8">Relé 8</button>
+<div class="container">
+    <h1>Truhlik Relé</h1>
+    <div class="relay-container" role="group" aria-label="Ovládání relé">
+        <button class="relay off" id="relay1" type="button" aria-pressed="false">Relé 1</button>
+        <button class="relay off" id="relay2" type="button" aria-pressed="false">Relé 2</button>
+        <button class="relay off" id="relay3" type="button" aria-pressed="false">Relé 3</button>
+        <button class="relay off" id="relay4" type="button" aria-pressed="false">Relé 4</button>
+        <button class="relay off" id="relay5" type="button" aria-pressed="false">Relé 5</button>
+        <button class="relay off" id="relay6" type="button" aria-pressed="false">Relé 6</button>
+        <button class="relay off" id="relay7" type="button" aria-pressed="false">Relé 7</button>
+    </div>
 </div>
 
 <script>
 
     // Funkce pro nastavení třídy on/off
-    function updateButton(relayId, status_obj) {
-        const isOn = status_obj.status;
-        console.log("updateButton: ", relayId, isOn, status_obj)
+    function updateButton(relayId, { id, status, description } = status_obj) {
+        const isOn = status;
+        console.log("updateButton: ", relayId, id, status, description)
         const btn = document.getElementById(`relay${relayId}`);
         btn.classList.toggle('on', isOn);
         btn.classList.toggle('off', !isOn);
+        btn.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+        btn.innerHTML = description
     }
 
     async function fetchRelays() {
@@ -96,7 +152,7 @@
 
 
     // Připojení onclick handlerů na tlačítka
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= 7; i++) {
         const btn = document.getElementById(`relay${i}`);
         btn.addEventListener('click', () => {
             const isOn = btn.classList.contains('on');
