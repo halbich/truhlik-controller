@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from datetime import datetime, timezone
 
 from gpiozero import DigitalOutputDevice
 
@@ -10,6 +11,23 @@ from services.config import get_config
 
 
 status_path = get_config().get("status_path", ".")
+
+# Local in-memory timestamp (UTC ms) of the last successful update
+_last_update_ms: int = 0
+
+
+def _utc_now_ms() -> int:
+    return int(datetime.now(timezone.utc).timestamp() * 1000)
+
+
+def get_last_update() -> int:
+    return _last_update_ms
+
+
+def _touch_last_update() -> None:
+    global _last_update_ms
+    _last_update_ms = _utc_now_ms()
+
 
 class RelayInstance:
     def __init__(self, relay_id: int, description: str = ""):
@@ -70,17 +88,24 @@ def init_relay():
     Path(status_path).mkdir(parents=True, exist_ok=True)
     for relay in Relay:
         relay.init_relay()
+    # after initialization, set the last update to now
+    _touch_last_update()
 
 
 def set_relay(relay_id: int, is_on: bool) -> dict:
     relay = RelayIndexed[relay_id]
     relay.set_status(is_on)
+    _touch_last_update()
     print(f"Relay {relay_id} is set to {is_on}")
     return relay.get_status_obj()
 
 
 def get_relays_status():
-    return [
-        relay.get_status_obj()
-        for relay in Relay
-    ]
+    # returns a dict with last timestamp and the list of relays
+    return {
+        "last": get_last_update(),
+        "relays": [
+            relay.get_status_obj()
+            for relay in Relay
+        ]
+    }

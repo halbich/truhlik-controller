@@ -125,11 +125,21 @@
         btn.innerHTML = description
     }
 
+    let lastStamp = 0; // UTC ms, 0 initially
+
     async function fetchRelays() {
         try {
-            const res = await fetch("/relays");
-            const relays = await res.json();
-            relays.forEach((state, idx) => updateButton(document.getElementById(`relay${idx + 1}`), state));
+            const res = await fetch(`/relays?last=${encodeURIComponent(lastStamp)}`);
+            if (res.status === 304) {
+                // No changes, do not update DOM
+                return;
+            }
+            const payload = await res.json();
+            console.log("updating DOM", payload)
+            if (payload && typeof payload.last === 'number' && Array.isArray(payload.relays)) {
+                lastStamp = payload.last;
+                payload.relays.forEach((state, idx) => updateButton(document.getElementById(`relay${idx + 1}`), state));
+            }
         } catch (err) {
             console.error("Chyba při načítání relé:", err);
         }
@@ -140,11 +150,14 @@
             const relayId = btn.getAttribute("data-id")
             console.log("data", relayId)
 
-            const res = await fetch(`/relay/${relayId}/set_status?is_on=${!currentState}`, {
+            const res = await fetch(`/relay/${relayId}/set_status?is_on=${!currentState}&last=${encodeURIComponent(lastStamp)}`, {
                 method: 'POST'
             });
             const data = await res.json();
             console.log("toggleRelay: ", relayId, data)
+            if (typeof data.last === 'number') {
+                lastStamp = data.last;
+            }
             if (data.state !== undefined) {
                 updateButton(btn, data.state);
             }
