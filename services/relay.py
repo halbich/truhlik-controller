@@ -15,7 +15,7 @@ class RelayInstance:
     def __init__(self, relay_id: int, description: str = ""):
         self.relay_id = relay_id
         self.dod = DigitalOutputDevice(relay_id, active_high=False)
-        if len(description) < 0:
+        if len(description) <= 0:
             description = f"Relé {relay_id}"
         self.description = description
 

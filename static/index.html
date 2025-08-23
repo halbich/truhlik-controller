@@ -122,6 +122,7 @@
         btn.classList.toggle('on', isOn);
         btn.classList.toggle('off', !isOn);
         btn.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+        btn.setAttribute("data-id", id)
         btn.innerHTML = description
     }
 
