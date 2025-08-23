@@ -136,8 +136,11 @@
         }
     }
 
-    async function toggleRelay(relayId, currentState) {
+    async function toggleRelay(btn, currentState) {
         try {
+            const relayId = btn.getAttribute("data-id")
+            console.log("data", relayId)
+
             const res = await fetch(`/relay/${relayId}/set_status?is_on=${!currentState}`, {
                 method: 'POST'
             });
@@ -157,7 +160,7 @@
         const btn = document.getElementById(`relay${i}`);
         btn.addEventListener('click', () => {
             const isOn = btn.classList.contains('on');
-            toggleRelay(i, isOn);
+            toggleRelay(btn, isOn);
         });
     }
 
