@@ -9,6 +9,7 @@ def get_config():
     return {
         "status_path": environ.get("STATUS_PATH", "."),
         "be_path": environ.get("BE_PATH", "http://rp.local:8081"),
+        "schedule_json": environ.get("SCHEDULE_JSON", ".schedule.json"),
     }
 
 def safe_urljoin(base_url: str, path: str) -> str:

@@ -4,7 +4,7 @@ from fastapi.responses import FileResponse
 from starlette.responses import JSONResponse
 from typing import Optional
 
-from services.relay import get_relays_status, init_relay, set_relay, get_last_update
+from services.relay import get_relays_status, init_relay, set_relay, get_last_update, check_schedule
 
 app = FastAPI(
     title="Truhlik API",
@@ -37,6 +37,16 @@ async def set_relay_status(relay_id: int, is_on: bool, last: Optional[int] = 0):
     try:
         result: dict = set_relay(relay_id, is_on)
         return {"state": result, "last": get_last_update()}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# --- Spuštění kontroly rozvrhu ---
+@app.post("/check_schedule")
+async def post_check_schedule():
+    try:
+        result: dict = check_schedule()
+        return result
     except Exception as e:
         return {"error": str(e)}
 
