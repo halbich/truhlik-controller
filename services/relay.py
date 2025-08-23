@@ -74,13 +74,14 @@ class RelayInstance:
 
 
 Relay = [
+    # RelayInstance(5), #controlled by hardware, not though GPIO
     RelayInstance(6, "Voda"),
     RelayInstance(13, "Filtrace"),
     RelayInstance(16, "UV lampa"),
-    RelayInstance(19),
-    RelayInstance(20),
-    RelayInstance(21),
-    RelayInstance(26),
+    # RelayInstance(19),  don't need it now
+    # RelayInstance(20),  don't need it now
+    # RelayInstance(21),  don't need it now
+    # RelayInstance(26),  don't need it now
 ]
 RelayIndexed = {r.relay_id: r for r in Relay}
 
@@ -237,7 +238,7 @@ def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
             continue
 
         if relay_id not in RelayIndexed:
-            result["errors"].append(f"Unknown relay id: {relay_id}")
+            # Relay ID not present in this instance; skip silently
             continue
 
         desired_on = False
