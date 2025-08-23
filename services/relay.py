@@ -241,11 +241,13 @@ def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
             continue
 
         desired_on = False
+        skip_apply = False
         try:
             if isinstance(intervals, list):
+                active_enabled = False
+                active_disabled = False
                 for it in intervals:
-                    # Skip disabled spans
-                    if isinstance(it, dict) and it.get("disabled", False):
+                    if not isinstance(it, dict):
                         continue
                     on_s = it.get("on")
                     off_s = it.get("off")
@@ -254,23 +256,35 @@ def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
                     on_min = _parse_hhmm(on_s)
                     off_min = _parse_hhmm(off_s)
                     if _is_now_in_interval(now_min, on_min, off_min):
-                        desired_on = True
-                        break
+                        if bool(it.get("disabled", False)):
+                            active_disabled = True
+                        else:
+                            active_enabled = True
+                            break
+                if active_enabled:
+                    desired_on = True
+                elif active_disabled:
+                    skip_apply = True
             else:
                 result["errors"].append(f"Invalid intervals for relay {relay_id}")
         except Exception as e:
             result["errors"].append(f"Relay {relay_id} parse error: {e}")
 
         before = RelayIndexed[relay_id].get_status()
-        state_obj = set_relay(relay_id, desired_on)
-        after = state_obj.get("status", after if (after := desired_on) is not None else desired_on)
-        changed = before != after
+        if skip_apply:
+            after = before
+            changed = False
+        else:
+            state_obj = set_relay(relay_id, desired_on)
+            after = state_obj.get("status", desired_on)
+            changed = before != after
         result["processed"].append({
             "id": relay_id,
             "desired": desired_on,
             "before": before,
             "after": after,
             "changed": changed,
+            "skipped": skip_apply,
         })
 
     result["last"] = get_last_update()
