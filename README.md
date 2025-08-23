@@ -9,7 +9,7 @@ Small FastAPI backend + static UI to control relays and execute time-based sched
 Add the following line to your crontab (e.g., `crontab -e`) to call the scheduler once per minute:
 
 ```
-* * * * * /usr/bin/curl -fsS -m 10 -X POST http://truhlik.local:8080/check_schedule -o /dev/null
+* * * * * /usr/bin/curl -fsS -m 10 -X POST http://truhlik.local/check_schedule -o /dev/null
 ```
 
 Notes:
