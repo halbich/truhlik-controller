@@ -2,7 +2,7 @@ import os
 import json
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 
 from gpiozero import DigitalOutputDevice
 
@@ -16,16 +16,31 @@ class ScheduleSlot:
         self.off = off
         self.disabled = disabled
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {"on": self.on, "off": self.off, "disabled": bool(self.disabled)}
+
 
 class RelaySchedule:
     def __init__(self, manual_mode: bool = False, time_slots: Optional[List[ScheduleSlot]] = None):
         self.manual_mode = manual_mode
         self.time_slots = time_slots or []
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "manual_mode": bool(self.manual_mode),
+            "time_slots": [slot.to_dict() for slot in (self.time_slots or [])]
+        }
+
 
 class Schedule:
     def __init__(self, relays: Optional[Dict[str, RelaySchedule]] = None):
         self.relays = relays or {}
+
+    def to_dict(self) -> Dict[str, Any]:
+        out: Dict[str, Any] = {}
+        for key, rs in (self.relays or {}).items():
+            out[key] = rs.to_dict()
+        return out
 
 
 # GPIO Pin
@@ -205,16 +220,26 @@ def _load_schedule() -> Schedule:
                 # Unknown type; skip or initialize empty
                 relays[key] = RelaySchedule(False, [])
 
+    result = Schedule(relays)
+
     if have_to_save:
-        _save_schedule(relays)
-    return Schedule(relays)
+        _save_schedule(result)
+    return result
 
 
-def _save_schedule(data: Dict[str, Any]) -> None:
+def _save_schedule(schedule: Schedule) -> None:
+    # Accepts Schedule or a dict. Converts into the new JSON structure.
+
+    payload = schedule.to_dict()
     cfg = get_config()
     schedule_path = cfg.get("schedule_json", ".schedule.json")
     with open(schedule_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def save_schedule(schedule: Schedule) -> None:
+    """Public function: accept Schedule and save it in the new JSON schema."""
+    _save_schedule(schedule)
 
 
 def update_schedule_span(relay_id: int, span_index: int, is_on: bool) -> Dict[str, Any]:
@@ -239,12 +264,14 @@ def update_schedule_span(relay_id: int, span_index: int, is_on: bool) -> Dict[st
     _touch_last_update()
     # Return minimal info
     now_dt, now_min = _get_now_min(None)
+
     def span_view(it: Dict[str, Any]) -> Dict[str, Any]:
         try:
             active = _is_now_in_interval(now_min, _parse_hhmm(it.get("on", "0:00")), _parse_hhmm(it.get("off", "0:00")))
         except Exception:
             active = False
         return {"on": it.get("on"), "off": it.get("off"), "disabled": bool(it.get("disabled", False)), "active_now": active}
+
     return {
         "relay_id": relay_id,
         "spans": [span_view(it) for it in spans]
