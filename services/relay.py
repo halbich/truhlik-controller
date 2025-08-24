@@ -166,7 +166,7 @@ def _load_schedule() -> Schedule:
     cfg = get_config()
     schedule_path = cfg.get("schedule_json", ".schedule.json")
     if not os.path.exists(schedule_path):
-        return Schedule({})
+        return Schedule()
     with open(schedule_path, "r", encoding="utf-8") as f:
         raw = json.load(f)
 
@@ -345,29 +345,27 @@ def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
 
 
 def get_relays_status():
-    # returns a dict with last timestamp and the list of relays incl. schedule spans
+    # returns a dict with last timestamp and the list of relays incl. schedule spans (new structure)
     schedule = _load_schedule()
     now_dt, now_min = _get_now_min(None)
     rels = []
     for relay in Relay:
         obj = relay.get_status_obj()
         spans_view: List[Dict[str, Any]] = []
-        spans = schedule.get(str(relay.relay_id), []) if isinstance(schedule, dict) else []
-        if isinstance(spans, list):
-            for it in spans:
-                if not isinstance(it, dict):
-                    continue
-                try:
-                    active = _is_now_in_interval(now_min, _parse_hhmm(it.get("on", "0:00")), _parse_hhmm(it.get("off", "0:00")))
-                except Exception:
-                    active = False
-                spans_view.append({
-                    "on": it.get("on"),
-                    "off": it.get("off"),
-                    "disabled": bool(it.get("disabled", False)),
-                    "active_now": active
-                })
+        rs = schedule.relays.get(str(relay.relay_id), RelaySchedule())
+        for slot in rs.time_slots:
+            try:
+                active = _is_now_in_interval(now_min, _parse_hhmm(slot.on), _parse_hhmm(slot.off))
+            except Exception:
+                active = False
+            spans_view.append({
+                "on": slot.on,
+                "off": slot.off,
+                "disabled": bool(slot.disabled),
+                "active_now": active
+            })
         obj["schedule"] = spans_view
+        obj["manual_mode"] = bool(rs.manual_mode)
         rels.append(obj)
     return {
         "last": get_last_update(),
