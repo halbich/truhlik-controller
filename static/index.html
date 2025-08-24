@@ -103,6 +103,8 @@
         .sched-btn { padding:6px 10px; border-radius:8px; border:1px solid #ccc; background:#f8f8f8; cursor:pointer; font-size:14px; }
         .sched-btn.disabled { opacity:0.5; text-decoration: line-through; }
         .sched-btn.active { border-color:#2e7d32; background:#e8f5e9; }
+        /* Manual mode lock styling for slots */
+        .sched-btn.locked { opacity:0.6; cursor:not-allowed; }
         /* Mode button styles */
         .mode-btn.manual { border-color:#1976d2; background:#e3f2fd; color:#0d47a1; }
         .mode-btn.auto { /* neutral, same as not active slot, but not disabled */ }
@@ -110,6 +112,7 @@
             table.sched th, table.sched td { border-bottom:1px solid rgba(255,255,255,0.1); }
             .sched-btn { background:#1f1f1f; border-color:#3a3a3a; color:#eaeaea; }
             .sched-btn.active { border-color:#74d680; background:#163b19; }
+            .sched-btn.locked { opacity:0.5; cursor:not-allowed; }
             .mode-btn.manual { border-color:#64b5f6; background:#0f2640; color:#bbdefb; }
         }
     </style>
@@ -198,6 +201,12 @@
                     b.textContent = `${sp.on ?? '?'}—${sp.off ?? '?'}`;
                     if (sp.active_now) b.classList.add('active');
                     if (sp.disabled) b.classList.add('disabled');
+                    if (r.manual_mode) {
+                        b.disabled = true;
+                        b.classList.add('locked');
+                        b.setAttribute('aria-disabled', 'true');
+                        b.title = 'V manuálním režimu nelze měnit časové úseky';
+                    }
                     b.addEventListener('click', async () => {
                         try {
                             // Toggle disabled -> is_on becomes !disabled

@@ -232,6 +232,9 @@ def update_schedule_span(relay_id: str, span_index: int, is_on: bool) -> Dict[st
     rs = schedule.relays.get(relay_id)
     if rs is None or not isinstance(rs, RelaySchedule):
         raise ValueError("Relay has no schedule")
+    # Disallow span updates while in manual mode
+    if rs.manual_mode:
+        raise ValueError("Relay is in manual mode; cannot modify schedule spans")
     spans = rs.time_slots
     if not (0 <= span_index < len(spans)):
         raise IndexError("span_index out of range")
