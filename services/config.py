@@ -12,6 +12,7 @@ def get_config():
         "schedule_json": environ.get("SCHEDULE_JSON", ".schedule.json"),
     }
 
+
 def safe_urljoin(base_url: str, path: str) -> str:
     base_url = base_url.rstrip('/') + '/'
     path = path.lstrip('/')

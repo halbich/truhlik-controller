@@ -2,45 +2,14 @@ import os
 import json
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Union, Tuple
 
 from gpiozero import DigitalOutputDevice
 
+from models.schedule import Schedule, RelaySchedule, ScheduleSlot
 from services.config import get_config
 
-
 # New schedule data structures
-class ScheduleSlot:
-    def __init__(self, on: str, off: str, disabled: bool = False):
-        self.on = on
-        self.off = off
-        self.disabled = disabled
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {"on": self.on, "off": self.off, "disabled": bool(self.disabled)}
-
-
-class RelaySchedule:
-    def __init__(self, manual_mode: bool = False, time_slots: Optional[List[ScheduleSlot]] = None):
-        self.manual_mode = manual_mode
-        self.time_slots = time_slots or []
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "manual_mode": bool(self.manual_mode),
-            "time_slots": [slot.to_dict() for slot in (self.time_slots or [])]
-        }
-
-
-class Schedule:
-    def __init__(self, relays: Optional[Dict[str, RelaySchedule]] = None):
-        self.relays = relays or {}
-
-    def to_dict(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {}
-        for key, rs in (self.relays or {}).items():
-            out[key] = rs.to_dict()
-        return out
 
 
 # GPIO Pin
@@ -171,7 +140,7 @@ def _is_now_in_interval(now_min: int, on_min: int, off_min: int) -> bool:
     return now_min >= on_min or now_min < off_min
 
 
-def _get_now_min(now_utc: Optional[datetime] = None) -> (datetime, int):
+def _get_now_min(now_utc: Optional[datetime] = None) -> Tuple[datetime, int]:
     now_dt = now_utc.astimezone() if now_utc else datetime.now().astimezone()
     now_min = now_dt.hour * 60 + now_dt.minute
     return now_dt, now_min
@@ -228,13 +197,11 @@ def _load_schedule() -> Schedule:
 
 
 def _save_schedule(schedule: Schedule) -> None:
-
     payload = schedule.to_dict()
     cfg = get_config()
     schedule_path = cfg.get("schedule_json", ".schedule.json")
     with open(schedule_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
-
 
 
 def set_relay_mode(relay_id: str, manual_mode: bool) -> Dict[str, Any]:
@@ -280,10 +247,12 @@ def update_schedule_span(relay_id: str, span_index: int, is_on: bool) -> Dict[st
 
     def span_view(s: ScheduleSlot) -> Dict[str, Any]:
         try:
-            active = _is_now_in_interval(now_min, _parse_hhmm(s.on), _parse_hhmm(s.off))
+            active = s.is_now_in_interval(now_min)
         except Exception:
             active = False
-        return {"on": s.on, "off": s.off, "disabled": bool(s.disabled), "active_now": active}
+        sd = s.to_dict()
+        sd["active_now"] = active
+        return sd
 
     return {
         "relay_id": relay_id,
@@ -334,9 +303,7 @@ def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
                 active_enabled = False
                 active_disabled = False
                 for slot in relay_schedule.time_slots or []:
-                    on_min = _parse_hhmm(slot.on)
-                    off_min = _parse_hhmm(slot.off)
-                    if _is_now_in_interval(now_min, on_min, off_min):
+                    if slot.is_now_in_interval(now_min):
                         if slot.disabled:
                             active_disabled = True
                         else:
@@ -383,15 +350,13 @@ def get_relays_status():
         rs = schedule.relays.get(str(relay.relay_id), RelaySchedule())
         for slot in rs.time_slots:
             try:
-                active = _is_now_in_interval(now_min, _parse_hhmm(slot.on), _parse_hhmm(slot.off))
+                active = slot.is_now_in_interval(now_min)
             except Exception:
                 active = False
-            spans_view.append({
-                "on": slot.on,
-                "off": slot.off,
-                "disabled": bool(slot.disabled),
-                "active_now": active
-            })
+            # use the slot's to_dict to emit string values
+            sd = slot.to_dict()
+            sd["active_now"] = active
+            spans_view.append(sd)
         obj["schedule"] = spans_view
         obj["manual_mode"] = bool(rs.manual_mode)
         rels.append(obj)
