@@ -228,7 +228,6 @@ def _load_schedule() -> Schedule:
 
 
 def _save_schedule(schedule: Schedule) -> None:
-    # Accepts Schedule or a dict. Converts into the new JSON structure.
 
     payload = schedule.to_dict()
     cfg = get_config()
@@ -236,10 +235,6 @@ def _save_schedule(schedule: Schedule) -> None:
     with open(schedule_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
-
-def save_schedule(schedule: Schedule) -> None:
-    """Public function: accept Schedule and save it in the new JSON schema."""
-    _save_schedule(schedule)
 
 
 def update_schedule_span(relay_id: int, span_index: int, is_on: bool) -> Dict[str, Any]:
@@ -250,31 +245,32 @@ def update_schedule_span(relay_id: int, span_index: int, is_on: bool) -> Dict[st
     """
     schedule = _load_schedule()
     key = str(relay_id)
-    if key not in schedule or not isinstance(schedule[key], list):
+    rs = schedule.relays.get(key)
+    if rs is None or not isinstance(rs, RelaySchedule):
         raise ValueError("Relay has no schedule")
-    spans = schedule[key]
+    spans = rs.time_slots
     if not (0 <= span_index < len(spans)):
         raise IndexError("span_index out of range")
-    span = spans[span_index]
-    if not isinstance(span, dict):
+    slot = spans[span_index]
+    if not isinstance(slot, ScheduleSlot):
         raise ValueError("Invalid span format")
     # Set disabled opposite to is_on
-    span["disabled"] = (not is_on)
+    slot.disabled = (not is_on)
     _save_schedule(schedule)
     _touch_last_update()
     # Return minimal info
     now_dt, now_min = _get_now_min(None)
 
-    def span_view(it: Dict[str, Any]) -> Dict[str, Any]:
+    def span_view(s: ScheduleSlot) -> Dict[str, Any]:
         try:
-            active = _is_now_in_interval(now_min, _parse_hhmm(it.get("on", "0:00")), _parse_hhmm(it.get("off", "0:00")))
+            active = _is_now_in_interval(now_min, _parse_hhmm(s.on), _parse_hhmm(s.off))
         except Exception:
             active = False
-        return {"on": it.get("on"), "off": it.get("off"), "disabled": bool(it.get("disabled", False)), "active_now": active}
+        return {"on": s.on, "off": s.off, "disabled": bool(s.disabled), "active_now": active}
 
     return {
         "relay_id": relay_id,
-        "spans": [span_view(it) for it in spans]
+        "spans": [span_view(s) for s in spans]
     }
 
 
