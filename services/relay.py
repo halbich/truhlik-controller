@@ -112,32 +112,6 @@ def set_relay(relay_id: str, is_on: bool) -> dict:
     return relay.get_status_obj()
 
 
-def _parse_hhmm(value: str) -> int:
-    """
-    Parses 'HH:MM' or 'H:MM' strings into minutes since midnight (0-1439).
-    Raises ValueError on invalid input.
-    """
-    parts = value.strip().split(":")
-    if len(parts) != 2:
-        raise ValueError(f"Invalid time format: {value}")
-    h = int(parts[0])
-    m = int(parts[1])
-    if not (0 <= h <= 23 and 0 <= m <= 59):
-        raise ValueError(f"Invalid time value: {value}")
-    return h * 60 + m
-
-
-def _is_now_in_interval(now_min: int, on_min: int, off_min: int) -> bool:
-    """
-    Returns True if now_min is within [on_min, off_min) considering intervals that may cross midnight.
-    """
-    if on_min == off_min:
-        # zero-length interval, never on
-        return False
-    if on_min < off_min:
-        return on_min <= now_min < off_min
-    # overnight interval e.g., 22:00-06:00
-    return now_min >= on_min or now_min < off_min
 
 
 def _get_now_min(now_utc: Optional[datetime] = None) -> Tuple[datetime, int]:
