@@ -9,6 +9,25 @@ from gpiozero import DigitalOutputDevice
 from services.config import get_config
 
 
+# New schedule data structures
+class ScheduleSlot:
+    def __init__(self, on: str, off: str, disabled: bool = False):
+        self.on = on
+        self.off = off
+        self.disabled = disabled
+
+
+class RelaySchedule:
+    def __init__(self, manual_mode: bool = False, time_slots: Optional[List[ScheduleSlot]] = None):
+        self.manual_mode = manual_mode
+        self.time_slots = time_slots or []
+
+
+class Schedule:
+    def __init__(self, relays: Optional[Dict[str, RelaySchedule]] = None):
+        self.relays = relays or {}
+
+
 # GPIO Pin
 
 
@@ -143,20 +162,52 @@ def _get_now_min(now_utc: Optional[datetime] = None) -> (datetime, int):
     return now_dt, now_min
 
 
-def _load_schedule() -> Dict[str, Any]:
+def _load_schedule() -> Schedule:
     cfg = get_config()
     schedule_path = cfg.get("schedule_json", ".schedule.json")
     if not os.path.exists(schedule_path):
-        return {}
+        return Schedule({})
     with open(schedule_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    # Ensure disabled flag defaults to False
-    for key, arr in list(data.items()):
-        if isinstance(arr, list):
-            for it in arr:
-                if isinstance(it, dict) and "disabled" not in it:
-                    it["disabled"] = False
-    return data
+        raw = json.load(f)
+
+    have_to_save = False
+    # Upgrade legacy format and construct objects:
+    relays: Dict[str, RelaySchedule] = {}
+    if isinstance(raw, dict):
+        for key, val in raw.items():
+            # Legacy: list of slots -> wrap to object
+            if isinstance(val, list):
+                have_to_save = True
+                slots: List[ScheduleSlot] = []
+                for it in val:
+                    if isinstance(it, dict):
+                        on_s = it.get("on")
+                        off_s = it.get("off")
+                        if isinstance(on_s, str) and isinstance(off_s, str):
+                            disabled_flag = bool(it.get("disabled", False))
+                            slots.append(ScheduleSlot(on_s, off_s, disabled_flag))
+                relays[key] = RelaySchedule(False, slots)
+            elif isinstance(val, dict):
+                # New format already
+                manual = bool(val.get("manual_mode", False))
+                slots_list = val.get("time_slots", [])
+                slots: List[ScheduleSlot] = []
+                if isinstance(slots_list, list):
+                    for it in slots_list:
+                        if isinstance(it, dict):
+                            on_s = it.get("on")
+                            off_s = it.get("off")
+                            if isinstance(on_s, str) and isinstance(off_s, str):
+                                disabled_flag = bool(it.get("disabled", False))
+                                slots.append(ScheduleSlot(on_s, off_s, disabled_flag))
+                relays[key] = RelaySchedule(manual, slots)
+            else:
+                # Unknown type; skip or initialize empty
+                relays[key] = RelaySchedule(False, [])
+
+    if have_to_save:
+        _save_schedule(relays)
+    return Schedule(relays)
 
 
 def _save_schedule(data: Dict[str, Any]) -> None:
