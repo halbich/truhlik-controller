@@ -182,6 +182,22 @@
         }, 10000);
     }
 
+    // Try to extract a clean error message from a fetch Response
+    async function getErrorMessageFromResponse(res) {
+        try {
+            const data = await res.json();
+            if (data) {
+                if (typeof data.error === 'string') return data.error;
+                if (data.error && typeof data.error.message === 'string') return data.error.message;
+                if (typeof data.message === 'string') return data.message;
+            }
+        } catch (_) {
+            // ignore JSON parse error
+        }
+        const txt = await res.text().catch(() => '');
+        return txt || res.statusText || `HTTP ${res.status}`;
+    }
+
     // Funkce pro nastavení třídy on/off
     function updateButton(btn, { id, status, description } = status_obj) {
         const isOn = status;
@@ -224,8 +240,8 @@
                         if (typeof data.last === 'number') lastStamp = data.last;
                         await fetchRelays(true);
                     } else {
-                        const txt = await res.text().catch(() => '');
-                        showWarning(`Nepodařilo se změnit režim (${res.status}): ${txt || res.statusText}`);
+                        const msg = await getErrorMessageFromResponse(res);
+                        showWarning(`Nepodařilo se změnit režim (${res.status}): ${msg}`);
                     }
                 } catch (e) {
                     console.error('Mode toggle error', e);
@@ -263,8 +279,8 @@
                                 // Force refresh to bypass 304 and re-render immediately on this device
                                 await fetchRelays(true);
                             } else {
-                                const txt = await res.text().catch(() => '');
-                                showWarning(`Nepodařilo se změnit časový úsek (${res.status}): ${txt || res.statusText}`);
+                                const msg = await getErrorMessageFromResponse(res);
+                                showWarning(`Nepodařilo se změnit časový úsek (${res.status}): ${msg}`);
                             }
                         } catch (e) {
                             console.error('Schedule toggle error', e);
@@ -314,8 +330,8 @@
                 return;
             }
             if (!res.ok) {
-                const txt = await res.text().catch(() => '');
-                showWarning(`Chyba při načítání dat ze serveru (${res.status}): ${txt || res.statusText}`);
+                const msg = await getErrorMessageFromResponse(res);
+                showWarning(`Chyba při načítání dat ze serveru (${res.status}): ${msg}`);
                 return;
             }
             const payload = await res.json();
@@ -342,8 +358,8 @@
                 method: 'POST'
             });
             if (!res.ok) {
-                const txt = await res.text().catch(() => '');
-                showWarning(`Chyba při změně relé (${res.status}): ${txt || res.statusText}`);
+                const msg = await getErrorMessageFromResponse(res);
+                showWarning(`Chyba při změně relé (${res.status}): ${msg}`);
                 return;
             }
             const data = await res.json();
