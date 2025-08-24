@@ -116,6 +116,15 @@
             .mode-btn.manual { border-color:#64b5f6; background:#0f2640; color:#bbdefb; }
         }
     </style>
+    <style>
+        /* Warning box styles */
+        #warningArea { margin-top: 10px; }
+        .warning-box { border:1px solid #f0c36d; background:#fff8e1; color:#5d4037; padding:10px 12px; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.06); transition: opacity 1s ease; opacity: 1; }
+        .warning-box.fading { opacity: 0; }
+        @media (prefers-color-scheme: dark) {
+            .warning-box { background:#3a2f00; border-color:#8d6e63; color:#ffe8b2; box-shadow:0 1px 2px rgba(0,0,0,0.4); }
+        }
+    </style>
 </head>
 <body>
 <div class="container">
@@ -128,6 +137,8 @@
     <div style="margin-top:16px">
         <h2 style="font-size:18px;margin:10px 0">Rozvrhy</h2>
         <div id="scheduleTableWrapper"></div>
+        <!-- Warning box area -->
+        <div id="warningArea" aria-live="polite" aria-atomic="true"></div>
     </div>
 
 <!--    &lt;!&ndash; Manuální kontrola rozvrhu &ndash;&gt;-->
@@ -138,6 +149,38 @@
 </div>
 
 <script>
+    // --- Warning box handling ---
+    let __warnFadeTimer = null;
+    let __warnRemoveTimer = null;
+    function showWarning(message) {
+        const area = document.getElementById('warningArea');
+        if (!area) return;
+        let box = document.getElementById('warningBox');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'warningBox';
+            box.className = 'warning-box';
+            area.innerHTML = '';
+            area.appendChild(box);
+        }
+        // Reset timers and visual state
+        if (__warnFadeTimer) { clearTimeout(__warnFadeTimer); __warnFadeTimer = null; }
+        if (__warnRemoveTimer) { clearTimeout(__warnRemoveTimer); __warnRemoveTimer = null; }
+        box.classList.remove('fading');
+        box.style.display = 'block';
+        box.textContent = String(message || 'Došlo k chybě komunikace se serverem.');
+        // Start fade after 10s, fade duration 1s
+        __warnFadeTimer = setTimeout(() => {
+            box.classList.add('fading');
+            __warnRemoveTimer = setTimeout(() => {
+                // Remove the box after fade completes (1s)
+                if (box && box.parentNode) {
+                    box.remove();
+                }
+                __warnRemoveTimer = null;
+            }, 1000);
+        }, 10000);
+    }
 
     // Funkce pro nastavení třídy on/off
     function updateButton(btn, { id, status, description } = status_obj) {
@@ -181,10 +224,12 @@
                         if (typeof data.last === 'number') lastStamp = data.last;
                         await fetchRelays(true);
                     } else {
-                        console.error('Failed to set mode', await res.text());
+                        const txt = await res.text().catch(() => '');
+                        showWarning(`Nepodařilo se změnit režim (${res.status}): ${txt || res.statusText}`);
                     }
                 } catch (e) {
                     console.error('Mode toggle error', e);
+                    showWarning(`Chyba při změně režimu: ${e?.message || e}`);
                 }
             });
             tdMode.appendChild(modeBtn);
@@ -218,10 +263,12 @@
                                 // Force refresh to bypass 304 and re-render immediately on this device
                                 await fetchRelays(true);
                             } else {
-                                console.error('Failed to update schedule span', await res.text());
+                                const txt = await res.text().catch(() => '');
+                                showWarning(`Nepodařilo se změnit časový úsek (${res.status}): ${txt || res.statusText}`);
                             }
                         } catch (e) {
                             console.error('Schedule toggle error', e);
+                            showWarning(`Chyba při změně časového úseku: ${e?.message || e}`);
                         }
                     });
                     box.appendChild(b);
@@ -266,6 +313,11 @@
             if (!force && res.status === 304) {
                 return;
             }
+            if (!res.ok) {
+                const txt = await res.text().catch(() => '');
+                showWarning(`Chyba při načítání dat ze serveru (${res.status}): ${txt || res.statusText}`);
+                return;
+            }
             const payload = await res.json();
             if (payload && typeof payload.last === 'number' && Array.isArray(payload.relays)) {
                 renderRelayButtonsIfNeeded(payload.relays);
@@ -278,6 +330,7 @@
             }
         } catch (err) {
             console.error("Chyba při načítání relé:", err);
+            showWarning(`Chyba při načítání relé: ${err?.message || err}`);
         }
     }
 
@@ -288,15 +341,25 @@
             const res = await fetch(`/relay/${relayId}/set_status?is_on=${!currentState}&last=${encodeURIComponent(lastStamp)}`, {
                 method: 'POST'
             });
+            if (!res.ok) {
+                const txt = await res.text().catch(() => '');
+                showWarning(`Chyba při změně relé (${res.status}): ${txt || res.statusText}`);
+                return;
+            }
             const data = await res.json();
             if (typeof data.last === 'number') {
                 lastStamp = data.last;
+            }
+            if (data && data.error) {
+                showWarning(`Chyba při změně relé: ${data.error}`);
+                return;
             }
             if (data.state !== undefined) {
                 updateButton(btn, data.state);
             }
         } catch (err) {
             console.error("Chyba při změně relé:", err);
+            showWarning(`Chyba při změně relé: ${err?.message || err}`);
         }
     }
 
@@ -320,7 +383,9 @@
                     checkOut.textContent = text;
                 }
             } catch (e) {
-                checkOut.textContent = 'Chyba při volání rozvrhu: ' + (e?.message || e);
+                const msg = 'Chyba při volání rozvrhu: ' + (e?.message || e);
+                checkOut.textContent = msg;
+                showWarning(msg);
             } finally {
                 checkBtn.disabled = false;
                 checkBtn.textContent = originalText;
