@@ -4,7 +4,7 @@ from fastapi.responses import FileResponse
 from starlette.responses import JSONResponse
 from typing import Optional
 
-from services.relay import get_relays_status, init_relay, set_relay, get_last_update, check_schedule, update_schedule_span
+from services.relay import get_relays_status, init_relay, set_relay, get_last_update, check_schedule, update_schedule_span, set_relay_mode
 
 app = FastAPI(
     title="Truhlik API",
@@ -56,6 +56,16 @@ async def post_check_schedule():
 async def post_update_schedule(relay_id: str, span_index: int, is_on: bool):
     try:
         result = update_schedule_span(relay_id, span_index, is_on)
+        return {"ok": True, "result": result, "last": get_last_update()}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+# --- Set relay manual/auto mode ---
+@app.post("/relay/{relay_id}/set_mode")
+async def post_set_mode(relay_id: str, manual_mode: bool):
+    try:
+        result = set_relay_mode(relay_id, manual_mode)
         return {"ok": True, "result": result, "last": get_last_update()}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)

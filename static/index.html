@@ -103,10 +103,14 @@
         .sched-btn { padding:6px 10px; border-radius:8px; border:1px solid #ccc; background:#f8f8f8; cursor:pointer; font-size:14px; }
         .sched-btn.disabled { opacity:0.5; text-decoration: line-through; }
         .sched-btn.active { border-color:#2e7d32; background:#e8f5e9; }
+        /* Mode button styles */
+        .mode-btn.manual { border-color:#1976d2; background:#e3f2fd; color:#0d47a1; }
+        .mode-btn.auto { /* neutral, same as not active slot, but not disabled */ }
         @media (prefers-color-scheme: dark) {
             table.sched th, table.sched td { border-bottom:1px solid rgba(255,255,255,0.1); }
             .sched-btn { background:#1f1f1f; border-color:#3a3a3a; color:#eaeaea; }
             .sched-btn.active { border-color:#74d680; background:#163b19; }
+            .mode-btn.manual { border-color:#64b5f6; background:#0f2640; color:#bbdefb; }
         }
     </style>
 </head>
@@ -150,13 +154,39 @@
         const table = document.createElement('table');
         table.className = 'sched';
         const thead = document.createElement('thead');
-        thead.innerHTML = '<tr><th style="width:30%">Relé</th><th>Časové úseky</th></tr>';
+        thead.innerHTML = '<tr><th style="width:30%">Relé</th><th>Režim</th><th>Časové úseky</th></tr>';
         const tbody = document.createElement('tbody');
         relays.forEach((r, rIdx) => {
             const tr = document.createElement('tr');
             const th = document.createElement('th');
             th.textContent = r.description || ('Relé ' + r.id);
             tr.appendChild(th);
+
+            // Mode column with M/A button
+            const tdMode = document.createElement('td');
+            const modeBtn = document.createElement('button');
+            modeBtn.type = 'button';
+            modeBtn.className = 'sched-btn mode-btn ' + (r.manual_mode ? 'manual' : 'auto');
+            modeBtn.textContent = r.manual_mode ? 'M' : 'A';
+            modeBtn.title = r.manual_mode ? 'Manuální režim' : 'Automatický režim';
+            modeBtn.addEventListener('click', async () => {
+                try {
+                    const newMode = !r.manual_mode;
+                    const res = await fetch(`/relay/${r.id}/set_mode?manual_mode=${newMode ? 'true' : 'false'}`, { method: 'POST' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (typeof data.last === 'number') lastStamp = data.last;
+                        await fetchRelays(true);
+                    } else {
+                        console.error('Failed to set mode', await res.text());
+                    }
+                } catch (e) {
+                    console.error('Mode toggle error', e);
+                }
+            });
+            tdMode.appendChild(modeBtn);
+            tr.appendChild(tdMode);
+
             const td = document.createElement('td');
             const box = document.createElement('div');
             box.className = 'sched-buttons';

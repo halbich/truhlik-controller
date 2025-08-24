@@ -237,6 +237,24 @@ def _save_schedule(schedule: Schedule) -> None:
 
 
 
+def set_relay_mode(relay_id: str, manual_mode: bool) -> Dict[str, Any]:
+    """
+    Set manual_mode for the given relay_id in the Schedule and persist it.
+    If the relay has no schedule entry yet, it will be created.
+    Returns minimal info about the relay mode.
+    """
+    schedule = _load_schedule()
+    rs = schedule.relays.get(relay_id)
+    if rs is None or not isinstance(rs, RelaySchedule):
+        rs = RelaySchedule(manual_mode=bool(manual_mode), time_slots=[])
+        schedule.relays[relay_id] = rs
+    else:
+        rs.manual_mode = bool(manual_mode)
+    _save_schedule(schedule)
+    _touch_last_update()
+    return {"relay_id": relay_id, "manual_mode": bool(rs.manual_mode)}
+
+
 def update_schedule_span(relay_id: str, span_index: int, is_on: bool) -> Dict[str, Any]:
     """
     Update schedule span's enabled/disabled state for given relay and span index.
