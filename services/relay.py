@@ -117,7 +117,7 @@ Relay = [
     # RelayInstance(21),  don't need it now
     # RelayInstance(26),  don't need it now
 ]
-RelayIndexed = {r.relay_id: r for r in Relay}
+RelayIndexed: dict[str, RelayInstance] = {str(r.relay_id): r for r in Relay}
 
 
 def init_relay():
@@ -129,7 +129,7 @@ def init_relay():
     _touch_last_update()
 
 
-def set_relay(relay_id: int, is_on: bool) -> dict:
+def set_relay(relay_id: str, is_on: bool) -> dict:
     relay = RelayIndexed[relay_id]
     current = relay.get_status()
     if current == is_on:
@@ -276,10 +276,11 @@ def update_schedule_span(relay_id: int, span_index: int, is_on: bool) -> Dict[st
 
 def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
     """
-    Check the schedule file and set relays accordingly.
-    - Reads schedule path from config 'schedule_json'.
-    - For each relay ID key, determines if current time is within any interval.
-    - Calls set_relay for that relay to achieve desired state.
+    Check the schedule and set relays accordingly using the Schedule structure.
+    - Loads schedule via _load_schedule (no direct file reads here).
+    - For each relay ID key, determines if current time is within any enabled interval.
+    - Respects manual_mode by skipping automatic changes for that relay.
+    - Calls set_relay for that relay to achieve desired state when applicable.
     Returns a summary dict with actions taken.
     """
     cfg = get_config()
@@ -294,44 +295,32 @@ def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
         result["message"] = "Schedule file not found"
         return result
 
-    try:
-        with open(schedule_path, "r", encoding="utf-8") as f:
-            schedule_obj = json.load(f)
-    except Exception as e:
-        result["errors"].append(f"Failed to read schedule: {e}")
-        return result
+    # Load schedule using the loader (handles current and legacy formats)
+    schedule = _load_schedule()
 
     # Determine current local time in minutes (assuming schedule is in local time)
     now_dt, now_min = _get_now_min(now_utc)
 
-    for relay_id_str, intervals in schedule_obj.items():
-        try:
-            relay_id = int(relay_id_str)
-        except Exception:
-            result["errors"].append(f"Invalid relay id key: {relay_id_str}")
-            continue
+    for relay_id, relay_schedule in schedule.relays.items():
 
         if relay_id not in RelayIndexed:
-            # Relay ID not present in this instance; skip silently
             continue
 
         desired_on = False
         skip_apply = False
         try:
-            if isinstance(intervals, list):
+
+            # Respect manual mode: skip automatic changes
+            if relay_schedule.manual_mode:
+                skip_apply = True
+            else:
                 active_enabled = False
                 active_disabled = False
-                for it in intervals:
-                    if not isinstance(it, dict):
-                        continue
-                    on_s = it.get("on")
-                    off_s = it.get("off")
-                    if not isinstance(on_s, str) or not isinstance(off_s, str):
-                        continue
-                    on_min = _parse_hhmm(on_s)
-                    off_min = _parse_hhmm(off_s)
+                for slot in relay_schedule.time_slots or []:
+                    on_min = _parse_hhmm(slot.on)
+                    off_min = _parse_hhmm(slot.off)
                     if _is_now_in_interval(now_min, on_min, off_min):
-                        if bool(it.get("disabled", False)):
+                        if slot.disabled:
                             active_disabled = True
                         else:
                             active_enabled = True
@@ -340,8 +329,6 @@ def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
                     desired_on = True
                 elif active_disabled:
                     skip_apply = True
-            else:
-                result["errors"].append(f"Invalid intervals for relay {relay_id}")
         except Exception as e:
             result["errors"].append(f"Relay {relay_id} parse error: {e}")
 
@@ -360,6 +347,7 @@ def check_schedule(now_utc: Optional[datetime] = None) -> Dict[str, Any]:
             "after": after,
             "changed": changed,
             "skipped": skip_apply,
+            "manual_mode": relay_schedule.manual_mode,
         })
 
     result["last"] = get_last_update()

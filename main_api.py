@@ -33,7 +33,7 @@ async def relays_status(last: Optional[int] = 0):
 
 # --- Nastavení stavu relé ---
 @app.post("/relay/{relay_id}/set_status")
-async def set_relay_status(relay_id: int, is_on: bool, last: Optional[int] = 0):
+async def set_relay_status(relay_id: str, is_on: bool, last: Optional[int] = 0):
     try:
         result: dict = set_relay(relay_id, is_on)
         return {"state": result, "last": get_last_update()}
