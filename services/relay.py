@@ -237,15 +237,14 @@ def _save_schedule(schedule: Schedule) -> None:
 
 
 
-def update_schedule_span(relay_id: int, span_index: int, is_on: bool) -> Dict[str, Any]:
+def update_schedule_span(relay_id: str, span_index: int, is_on: bool) -> Dict[str, Any]:
     """
     Update schedule span's enabled/disabled state for given relay and span index.
     is_on=True means the span should be enabled (disabled=False), and vice versa.
     Returns a dict with updated relay schedule info.
     """
     schedule = _load_schedule()
-    key = str(relay_id)
-    rs = schedule.relays.get(key)
+    rs = schedule.relays.get(relay_id)
     if rs is None or not isinstance(rs, RelaySchedule):
         raise ValueError("Relay has no schedule")
     spans = rs.time_slots

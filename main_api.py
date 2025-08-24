@@ -53,7 +53,7 @@ async def post_check_schedule():
 
 # --- Update schedule (enable/disable a span) ---
 @app.post("/relay/{relay_id}/update_schedule")
-async def post_update_schedule(relay_id: int, span_index: int, is_on: bool):
+async def post_update_schedule(relay_id: str, span_index: int, is_on: bool):
     try:
         result = update_schedule_span(relay_id, span_index, is_on)
         return {"ok": True, "result": result, "last": get_last_update()}
